@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 
 import { ExcelImport } from "@/components/import/excel-import";
+import { HfWizard } from "@/components/import/hf-wizard";
+import { workerAvailable } from "@/lib/hf/python";
+import { listDatapacks } from "@/lib/queries/datapacks";
 import { JobList } from "@/components/jobs/job-list";
 import { getDb } from "@/lib/db/client";
 import { listJobs } from "@/lib/jobs/queue";
@@ -17,7 +20,10 @@ export default async function ImportPage({
 }) {
   const { tab } = await searchParams;
   const initial = tab === "hf" || tab === "jobs" ? tab : "excel";
-  const jobs = listJobs(getDb(), 100);
+  const db = getDb();
+  const jobs = listJobs(db, 100);
+  const datapacks = listDatapacks(db).map((p) => p.name);
+  const worker = workerAvailable();
   return (
     <div className="flex flex-1 flex-col gap-6 p-6">
       <div className="flex flex-col gap-1">
@@ -36,15 +42,7 @@ export default async function ImportPage({
           <ExcelImport />
         </TabsContent>
         <TabsContent value="hf" className="mt-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>HuggingFace 가져오기</CardTitle>
-              <CardDescription>
-                Phase 6에서 제공됩니다. 링크 → 스키마 미리보기 → 필드 매핑 → LLaVA JSON 변환.
-              </CardDescription>
-            </CardHeader>
-            <CardContent />
-          </Card>
+          <HfWizard datapacks={datapacks} workerReady={worker.ok} workerReason={worker.reason} />
         </TabsContent>
         <TabsContent value="jobs" className="mt-4">
           <Card>

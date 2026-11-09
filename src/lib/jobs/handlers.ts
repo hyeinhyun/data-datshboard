@@ -1,3 +1,4 @@
+import { runHfImportJob } from "@/lib/hf/import-job";
 import { IndexCancelled, indexVariant } from "@/lib/indexer/index-variant";
 import { getVariant } from "@/lib/queries/datasets";
 import { registerHandler } from "./queue";
@@ -31,4 +32,6 @@ export function ensureHandlers(): void {
       throw err;
     }
   });
+
+  registerHandler("hf_import", runHfImportJob);
 }
