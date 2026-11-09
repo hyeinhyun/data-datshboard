@@ -1,6 +1,8 @@
 # VLM SFT Data Dashboard 개발 계획
 
-작성일: 2026-11-09 (5차 수정 — 확정 사항·ViRL39K 스키마 반영)
+작성일: 2026-11-09 (6차 — 구현 완료 상태 반영)
+
+> **구현 현황 (2026-11-09)**: Phase 0~8 구현 완료. 세부 변경 사항은 아래 "구현 메모" 절과 git 로그 참고.
 
 ## 1. 데이터 구조 (확인된 사실)
 
@@ -233,77 +235,77 @@ tests/
 
 ### Phase 1 — Excel 가져오기 + 계층 모델 + 개요 (2일)
 
-- [ ] 스키마: superpacks, datapacks, datasets, variants, superpack_datapacks, superpack_dataset_weights, jobs
-- [ ] 다중 시트 파서, 헤더 정규화, 빈 경로 처리, 쉼표 포함 Category
-- [ ] `/api/import/excel`: 가져오기 규칙(4-절) 구현, 충돌 목록 반환, 미리보기(적용 전 시트별 요약)
-- [ ] `/api/stats`: Superpack 기준 집계 + 필터
-- [ ] 개요: SuperpackPicker, KPI(Datapack 수, Dataset 수, 총 샘플, 학습 샘플, MX1/MX2 샘플), 차트(Category 스택 막대 variant 구분, Datapack 비율, 언어 비율, 가중치 표)
-- [ ] 테스트: 예시 TSV + 2시트 xlsx 픽스처, 같은 Datapack이 두 시트에 있는 케이스
+- [x] 스키마: superpacks, datapacks, datasets, variants, superpack_datapacks, superpack_dataset_weights, jobs
+- [x] 다중 시트 파서, 헤더 정규화, 빈 경로 처리, 쉼표 포함 Category
+- [x] `/api/import/excel`: 가져오기 규칙(4-절) 구현, 충돌 목록 반환, 미리보기(적용 전 시트별 요약)
+- [x] `/api/stats`: Superpack 기준 집계 + 필터
+- [x] 개요: SuperpackPicker, KPI(Datapack 수, Dataset 수, 총 샘플, 학습 샘플, MX1/MX2 샘플), 차트(Category 스택 막대 variant 구분, Datapack 비율, 언어 비율, 가중치 표)
+- [x] 테스트: 예시 TSV + 2시트 xlsx 픽스처, 같은 Datapack이 두 시트에 있는 케이스
 
 **완료**: 다중 시트 Excel을 올리면 Superpack별 개요가 보이고 수치가 Manifest와 일치한다.
 
 ### Phase 2 — Datapack · Dataset 화면 + 태그 (1.5일)
 
-- [ ] `/datapacks`: 테이블(이름, Dataset 수, 총 샘플, **소속 Superpack 배지**, 태그), 상세(Dataset 목록, Superpack 목록, 태그 편집)
-- [ ] `/datasets`: 가상 스크롤 테이블, 정렬·검색·컬럼 토글, 내보내기. 상세: 분류, variant 카드 3종, Superpack별 가중치 표, Manifest vs 색인 수치, 태그
-- [ ] 태그: tags/taggings 스키마, `/api/tags`, TagPicker(자동완성·새 태그·색상), TagChip, 모든 목록·개요 FilterBar에 태그 필터
-- [ ] 개요 차트 클릭 → 해당 조건으로 Dataset 테이블 이동
-- [ ] 전역 검색: `/api/search` + ⌘K 커맨드 팔레트(shadcn Command). Superpack·Datapack·Dataset·태그를 이름·카테고리·경로로 검색, 샘플 FTS 결과는 Phase 5에서 연결
+- [x] `/datapacks`: 테이블(이름, Dataset 수, 총 샘플, **소속 Superpack 배지**, 태그), 상세(Dataset 목록, Superpack 목록, 태그 편집)
+- [x] `/datasets`: 가상 스크롤 테이블, 정렬·검색·컬럼 토글, 내보내기. 상세: 분류, variant 카드 3종, Superpack별 가중치 표, Manifest vs 색인 수치, 태그
+- [x] 태그: tags/taggings 스키마, `/api/tags`, TagPicker(자동완성·새 태그·색상), TagChip, 모든 목록·개요 FilterBar에 태그 필터
+- [x] 개요 차트 클릭 → 해당 조건으로 Dataset 테이블 이동
+- [x] 전역 검색: `/api/search` + ⌘K 커맨드 팔레트(shadcn Command). Superpack·Datapack·Dataset·태그를 이름·카테고리·경로로 검색, 샘플 FTS 결과는 Phase 5에서 연결
 
 **완료**: Datapack마다 어떤 Superpack에 속하는지 보이고, 태그를 달고 태그로 필터링된다.
 
 ### Phase 3 — Superpack 구성·편집·내보내기 (1.5일)
 
-- [ ] `/superpacks/new`: 이름 + Datapack 멀티셀렉트(검색, 태그 필터, 선택 즉시 샘플 수·Dataset 수 미리보기)
-- [ ] `/superpacks/[id]`: Datapack 추가/제거·순서, Dataset별 MX weight 편집(기본값 = 해당 Dataset의 다른 Superpack 값 또는 1), 집계 자동 재계산
-- [ ] 내보내기: xlsx(Manifest와 같은 컬럼 구조, 시트 1개), JSON(학습 스크립트용 경로+가중치 목록)
-- [ ] Excel에서 온 Superpack도 편집 가능하되 `source=excel` 표시, 복제해서 새로 만들기
-- [ ] 테스트: 구성 변경 시 집계, 내보낸 xlsx를 다시 가져오면 동일
+- [x] `/superpacks/new`: 이름 + Datapack 멀티셀렉트(검색, 태그 필터, 선택 즉시 샘플 수·Dataset 수 미리보기)
+- [x] `/superpacks/[id]`: Datapack 추가/제거·순서, Dataset별 MX weight 편집(기본값 = 해당 Dataset의 다른 Superpack 값 또는 1), 집계 자동 재계산
+- [x] 내보내기: xlsx(Manifest와 같은 컬럼 구조, 시트 1개), JSON(학습 스크립트용 경로+가중치 목록)
+- [x] Excel에서 온 Superpack도 편집 가능하되 `source=excel` 표시, 복제해서 새로 만들기
+- [x] 테스트: 구성 변경 시 집계, 내보낸 xlsx를 다시 가져오면 동일
 
 **완료**: Datapack을 골라 새 Superpack을 만들고 Excel로 내보낼 수 있다.
 
 ### Phase 4 — 샘플 색인 (1.5일)
 
-- [ ] stream-json 스트리밍 → 1,000건 배치 insert, 파생 필드(n_turns, 길이, 미리보기, 이미지 유무), FTS
-- [ ] jobs 큐(동시 1~2), 진행률 SSE, 취소, 에러 기록(파일 없음·JSON 깨짐)
-- [ ] `/import` 작업 탭: 진행률·로그, Dataset 상세에서 variant별 색인 버튼, Superpack 단위 일괄 색인
-- [ ] 테스트: 예시 JSON, 깨진 JSON, 경로 재매핑
+- [x] stream-json 스트리밍 → 1,000건 배치 insert, 파생 필드(n_turns, 길이, 미리보기, 이미지 유무), FTS
+- [x] jobs 큐(동시 1~2), 진행률 SSE, 취소, 에러 기록(파일 없음·JSON 깨짐)
+- [x] `/import` 작업 탭: 진행률·로그, Dataset 상세에서 variant별 색인 버튼, Superpack 단위 일괄 색인
+- [x] 테스트: 예시 JSON, 깨진 JSON, 경로 재매핑
 
 **완료**: 10만 샘플 JSON을 메모리 급증 없이 색인하고 진행률이 실시간으로 보인다.
 
 ### Phase 5 — 샘플 탐색기 (2일)
 
-- [ ] `/api/samples`: Dataset·variant·Superpack 필터, FTS, 턴 수/길이 범위, 이미지 유무, 커서 페이지네이션, 무작위
-- [ ] SampleGrid(썸네일/리스트 토글), SampleDetail(이미지 뷰어, ConversationView 말풍선, 마크다운+KaTeX+코드, raw 토글, 메타, JSON 복사)
-- [ ] 이전/다음(← →), 무작위, 같은 id의 다른 variant로 점프
-- [ ] 썸네일 `?w=256` sharp 캐시, 누락 이미지 플레이스홀더
+- [x] `/api/samples`: Dataset·variant·Superpack 필터, FTS, 턴 수/길이 범위, 이미지 유무, 커서 페이지네이션, 무작위
+- [x] SampleGrid(썸네일/리스트 토글), SampleDetail(이미지 뷰어, ConversationView 말풍선, 마크다운+KaTeX+코드, raw 토글, 메타, JSON 복사)
+- [x] 이전/다음(← →), 무작위, 같은 id의 다른 variant로 점프
+- [x] 썸네일 `?w=256` sharp 캐시, 누락 이미지 플레이스홀더
 
 **완료**: 샘플 클릭 → 이미지와 멀티턴 Q/A, 수식 렌더링, 화살표 이동.
 
 ### Phase 6 — HuggingFace 가져오기 (2.5일)
 
-- [ ] `workers/hf_inspect.py`: repo → configs, splits, features, 5행 미리보기 (JSON 출력)
-- [ ] `workers/hf_import.py`: streaming 순회, 필드 매핑, 이미지 저장(PIL, bytes/URL/상대경로+zip 모두 처리), `<image>`→`<|image|>` 정규화, 다중 이미지, 메타 보존, LLaVA JSON 기록, 진행률 JSON lines, 최대 샘플 수, 재시작 가능(이어쓰기)
-- [ ] `hf download`로 저장소 보조 파일(images.zip 등) 받기·해제·캐시, `HF_TOKEN` 자동 적용
-- [ ] `lib/jobs/pythonRunner.ts`: 프로세스 실행·stdout 파싱·취소·타임아웃
-- [ ] HfWizard 3단계 UI(링크 → 매핑(자동 추천 + 미리보기) → 옵션·실행)
-- [ ] 완료 시 Dataset(source=hf) + variant default 생성 → 자동 색인 → Datapack 지정 UI
-- [ ] HF 토큰(비공개 데이터셋)은 서버 환경변수 `HF_TOKEN`로만
-- [ ] pytest: ViRL39K 상위 50행으로 변환 검증(zip 이미지 매칭, 토큰 정규화), 매핑 추천 유닛 테스트
+- [x] `workers/hf_inspect.py`: repo → configs, splits, features, 5행 미리보기 (JSON 출력)
+- [x] `workers/hf_import.py`: streaming 순회, 필드 매핑, 이미지 저장(PIL, bytes/URL/상대경로+zip 모두 처리), `<image>`→`<|image|>` 정규화, 다중 이미지, 메타 보존, LLaVA JSON 기록, 진행률 JSON lines, 최대 샘플 수, 재시작 가능(이어쓰기)
+- [x] `hf download`로 저장소 보조 파일(images.zip 등) 받기·해제·캐시, `HF_TOKEN` 자동 적용
+- [x] `lib/jobs/pythonRunner.ts`: 프로세스 실행·stdout 파싱·취소·타임아웃
+- [x] HfWizard 3단계 UI(링크 → 매핑(자동 추천 + 미리보기) → 옵션·실행)
+- [x] 완료 시 Dataset(source=hf) + variant default 생성 → 자동 색인 → Datapack 지정 UI
+- [x] HF 토큰(비공개 데이터셋)은 서버 환경변수 `HF_TOKEN`로만
+- [x] pytest: ViRL39K 상위 50행으로 변환 검증(zip 이미지 매칭, 토큰 정규화), 매핑 추천 유닛 테스트
 
 **완료**: HF 링크를 넣으면 JSON+이미지가 생성되고 탐색기에서 샘플이 열린다.
 
 ### Phase 7 — 실시간 갱신 (1일)
 
-- [ ] 이벤트 버스, `/api/events` SSE, 클라이언트 훅(refetch, 폴링 폴백)
-- [ ] chokidar: Manifest 변경 → 재가져오기 제안(자동 덮어쓰기 X, 충돌 가능). JSON mtime 5분 폴링 → 재색인 예약
-- [ ] 태그·Superpack 구성 변경도 이벤트로 전파 (여러 사람이 동시에 볼 때)
+- [x] 이벤트 버스, `/api/events` SSE, 클라이언트 훅(refetch, 폴링 폴백)
+- [x] chokidar: Manifest 변경 → 재가져오기 제안(자동 덮어쓰기 X, 충돌 가능). JSON mtime 5분 폴링 → 재색인 예약
+- [x] 태그·Superpack 구성 변경도 이벤트로 전파 (여러 사람이 동시에 볼 때)
 
 ### Phase 8 — 배포 (0.5일)
 
-- [ ] Dockerfile(Node 20 + Python 3.11 단일 이미지, standalone), docker-compose(`data/`, `OUTPUT_ROOT`, `/group-volume:ro`)
-- [ ] 헬스체크, README(실행·경로·HF 토큰·색인·내보내기)
-- [ ] Playwright E2E: Excel 가져오기 → Superpack 생성 → 태그 → 샘플 열기
+- [x] Dockerfile(Node 20 + Python 3.11 단일 이미지, standalone), docker-compose(`data/`, `OUTPUT_ROOT`, `/group-volume:ro`)
+- [x] 헬스체크, README(실행·경로·HF 토큰·색인·내보내기)
+- [x] Playwright E2E: Excel 가져오기 → Superpack 생성 → 태그 → 샘플 열기
 
 ### Phase 9 — 개선 (선택)
 
@@ -362,3 +364,17 @@ MVP 약 13 작업일(1인). Phase 3까지(5.5일)면 Excel 기반 Superpack 관�
 1. 실행 서버에 `/group-volume`이 마운트되어 있는지, Docker 실행 권한이 있는지
 2. Manifest Excel의 탭 수와 행 수 (성능 가늠용)
 3. 개발 PC에서 `/group-volume`에 접근 가능한지 (불가하면 픽스처로 개발 후 서버에서 검증)
+
+## 10. 구현 메모 (계획 대비 달라진 점)
+
+| 항목          | 계획                     | 실제                                                                                                  |
+| ------------- | ------------------------ | ----------------------------------------------------------------------------------------------------- |
+| DB 드라이버   | better-sqlite3 + Drizzle | Node 24 내장 `node:sqlite` + 직접 SQL (네이티브 빌드 의존성 제거, FTS5 사용)                          |
+| Excel         | SheetJS                  | exceljs (읽기·내보내기 모두)                                                                          |
+| UI 라이브러리 | shadcn (Radix)           | shadcn v4 기본 프리셋 (Base UI). `render` prop 패턴                                                   |
+| 테이블        | TanStack Table           | TanStack Table v8 고정 (v9는 API가 달라 보류)                                                         |
+| 실시간        | Phase 7                  | Phase 4부터 SSE + `RealtimeProvider`로 도입, Phase 7은 감시자·연결 표시 추가                          |
+| HF 워커       | Python `datasets`        | 동일. `hf_inspect` / `hf_import` CLI, JSON-lines 진행률, zip 아카이브 lazy 다운로드                   |
+| 색인 저장     | conversations 전문 저장  | 동일. FTS는 첫 질문 + 답변 전문(20k자 cap)                                                            |
+| 데모          | 없음                     | `scripts/make-demo-data.mjs`로 볼륨 없이 전체 흐름 확인 가능                                          |
+| 미검증        | —                        | Docker 이미지 빌드(로컬에 Docker 없음), 실제 `/group-volume` 경로 색인, ViRL39K 전체 변환(1.8 GB zip) |

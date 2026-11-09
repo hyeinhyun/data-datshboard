@@ -1,0 +1,33 @@
+services:
+  dashboard:
+    build: .
+    image: sft-data-dashboard:latest
+    container_name: sft-data-dashboard
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      # Manifest paths point at /group-volume; the volume is mounted at the same path below,
+      # so no prefix remapping is needed. Change PATH_PREFIX_TO if you mount it elsewhere.
+      PATH_PREFIX_FROM: /group-volume
+      PATH_PREFIX_TO: /group-volume
+      IMAGE_ROOT: /group-volume/lit/data/sr-llava/finetune/image_folder
+      OUTPUT_ROOT: /group-volume/lit/data/sr-llava/finetune/json/hf_imports
+      HF_TOKEN: ${HF_TOKEN:-}
+      MANIFEST_PATH: ${MANIFEST_PATH:-}
+      STALE_CHECK_MS: ${STALE_CHECK_MS:-300000}
+      AUTO_REINDEX: ${AUTO_REINDEX:-false}
+      HF_HOME: /data/hf-cache
+    volumes:
+      # SQLite DB, thumbnails, job files, HF download cache
+      - dashboard-data:/data
+      # Training data volume. HF imports write into it, so it is NOT read-only.
+      - /group-volume:/group-volume
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+volumes:
+  dashboard-data:

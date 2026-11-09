@@ -9,7 +9,14 @@ export default defineConfig({
   retries: process.env.CI ? 2 : 0,
   reporter: process.env.CI ? "github" : "list",
   use: { baseURL, trace: "on-first-retry" },
-  projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
+  // PLAYWRIGHT_CHANNEL=chrome drives the locally installed Google Chrome, useful where
+  // Playwright's own Chromium builds are unavailable (e.g. older macOS). Default: bundled Chromium.
+  projects: [
+    {
+      name: "chromium",
+      use: { ...devices["Desktop Chrome"], channel: process.env.PLAYWRIGHT_CHANNEL || undefined },
+    },
+  ],
   webServer: {
     command: "npm run dev",
     url: baseURL,
