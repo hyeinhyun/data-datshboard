@@ -36,7 +36,7 @@ export default async function OverviewPage({
         <p className="text-muted-foreground max-w-md text-sm">
           Manifest Excel(탭 = Superpack)을 가져오면 Superpack별 KPI와 분포가 여기에 표시됩니다.
         </p>
-        <Button render={<Link href="/import" />}>
+        <Button nativeButton={false} render={<Link href="/import" />}>
           <Download /> Manifest 가져오기
         </Button>
       </div>

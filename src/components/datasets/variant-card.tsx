@@ -100,7 +100,12 @@ export function VariantCard({ variant: v, action }: VariantCardProps) {
         <div className="flex items-center gap-2">
           {action}
           {v.nIndexed > 0 ? (
-            <Button size="sm" variant="outline" render={<Link href={`/samples?variant=${v.id}`} />}>
+            <Button
+              nativeButton={false}
+              size="sm"
+              variant="outline"
+              render={<Link href={`/samples?variant=${v.id}`} />}
+            >
               샘플 보기
             </Button>
           ) : null}
