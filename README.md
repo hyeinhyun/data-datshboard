@@ -66,15 +66,15 @@ node scripts/make-demo-data.mjs --samples 300
 
 ## 스크립트
 
-| 명령                                                    | 설명                                                                     |
-| ------------------------------------------------------- | ------------------------------------------------------------------------ |
-| `npm run dev`                                           | 개발 서버                                                                |
-| `npm run build` / `npm start`                           | 프로덕션 빌드(standalone)·실행                                           |
-| `npm run lint` / `npm run typecheck` / `npm run format` | ESLint / TypeScript / Prettier                                           |
-| `npm test`                                              | Vitest 유닛 테스트 (파서, 가져오기, Superpack, 색인, 샘플 쿼리, HF 헬퍼) |
-| `npm run test:e2e`                                      | Playwright E2E (`npx playwright install chromium` 1회 필요)              |
-| `npm run worker:test`                                   | Python 워커 pytest                                                       |
-| `node scripts/make-demo-data.mjs`                       | 로컬 데모 데이터 생성                                                    |
+| 명령                                                    | 설명                                                                                                                                                                                              |
+| ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `npm run dev`                                           | 개발 서버                                                                                                                                                                                         |
+| `npm run build` / `npm start`                           | 프로덕션 빌드(standalone)·실행                                                                                                                                                                    |
+| `npm run lint` / `npm run typecheck` / `npm run format` | ESLint / TypeScript / Prettier                                                                                                                                                                    |
+| `npm test`                                              | Vitest 유닛 테스트 (파서, 가져오기, Superpack, 색인, 샘플 쿼리, HF 헬퍼)                                                                                                                          |
+| `npm run test:e2e`                                      | Playwright E2E (`npx playwright install chromium` 1회 필요. Playwright가 Chromium을 지원하지 않는 OS(macOS 13 등)에서는 `PLAYWRIGHT_CHANNEL=chrome npm run test:e2e`로 설치된 Google Chrome 사용) |
+| `npm run worker:test`                                   | Python 워커 pytest                                                                                                                                                                                |
+| `node scripts/make-demo-data.mjs`                       | 로컬 데모 데이터 생성                                                                                                                                                                             |
 
 ## 배포 (Docker)
 
