@@ -1,21 +1,42 @@
 import type { Metadata } from "next";
 
-import { PagePlaceholder } from "@/components/layout/page-placeholder";
+import { DatasetsTable } from "@/components/datasets/datasets-table";
+import { FilterBar } from "@/components/overview/filter-bar";
+import { getDb } from "@/lib/db/client";
+import { parseOverviewFilters, type SearchParams } from "@/lib/filters";
+import { getOverview, listSuperpacks } from "@/lib/queries/overview";
 
 export const metadata: Metadata = { title: "Dataset" };
+export const dynamic = "force-dynamic";
 
-export default function DatasetsPage() {
+export default async function DatasetsPage({
+  searchParams,
+}: {
+  searchParams: Promise<SearchParams>;
+}) {
+  const sp = await searchParams;
+  const db = getDb();
+  const superpacks = listSuperpacks(db);
+  // The dataset table defaults to "all datasets"; the overview's chart links pass sp= explicitly.
+  const filters = parseOverviewFilters(sp, null);
+  const overview = getOverview(db, filters);
+  const selected = superpacks.find((s) => s.id === filters.superpackId) ?? null;
+
   return (
-    <PagePlaceholder
-      title="Dataset"
-      description="Manifest의 행 하나입니다. longer / longans / shortans variant별 경로와 수치를 봅니다."
-      phase="Phase 2"
-      features={[
-        "가상 스크롤 테이블: 정렬, 검색, 컬럼 토글, CSV 내보내기",
-        "상세: 분류 정보, variant 카드 3종(경로·샘플 수·sft weight·색인 상태)",
-        "Superpack별 MX weight 표, Manifest 수치와 색인 수치 비교·경고",
-        "태그 편집, 샘플 탐색기로 바로가기",
-      ]}
-    />
+    <div className="flex flex-1 flex-col gap-6 p-6">
+      <div className="flex flex-col gap-1">
+        <h2 className="text-2xl font-semibold tracking-tight">Dataset</h2>
+        <p className="text-muted-foreground text-sm">
+          {selected ? `Superpack "${selected.name}"에 포함된 Dataset` : "등록된 모든 Dataset"} ·
+          행을 클릭하면 상세로 이동합니다.
+        </p>
+      </div>
+      <FilterBar
+        superpacks={superpacks}
+        superpackId={filters.superpackId}
+        options={overview.options}
+      />
+      <DatasetsTable rows={overview.datasets} showWeights={selected !== null} />
+    </div>
   );
 }

@@ -24,7 +24,8 @@ import {
 } from "@/components/ui/select";
 import { FILTER_KEYS } from "@/lib/filters";
 import { VARIANT_KINDS } from "@/lib/manifest/types";
-import type { Overview, SuperpackSummary } from "@/lib/queries/overview";
+import type { SuperpackSummary } from "@/lib/domain";
+import type { Overview } from "@/lib/queries/overview";
 
 type FilterBarProps = {
   superpacks: SuperpackSummary[];

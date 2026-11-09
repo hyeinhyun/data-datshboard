@@ -1,49 +1,16 @@
 import type { DatabaseSync } from "node:sqlite";
 
 import { all } from "@/lib/db/client";
+import {
+  variantSamples,
+  type DatasetRow,
+  type SuperpackSummary,
+  type VariantInfo,
+} from "@/lib/domain";
 import { VARIANT_KINDS, type VariantKind } from "@/lib/manifest/types";
 
-export type SuperpackSummary = {
-  id: number;
-  name: string;
-  source: "excel" | "user";
-  description: string | null;
-  updatedAt: string;
-  nDatapacks: number;
-  nDatasets: number;
-  nSamples: number;
-};
-
-export type VariantInfo = {
-  id: number;
-  kind: VariantKind | "default";
-  jsonPath: string | null;
-  nSamples: number | null;
-  sftWeight: number | null;
-  indexStatus: string;
-  nIndexed: number;
-};
-
-export type DatasetRow = {
-  id: number;
-  name: string;
-  datapackId: number;
-  datapack: string;
-  category: string | null;
-  subCategory: string | null;
-  language: string | null;
-  note: string | null;
-  source: string;
-  variants: VariantInfo[];
-  tags: string[];
-  /** Per-superpack values; null when no superpack is selected. */
-  mxWeight1: number | null;
-  mxWeight2: number | null;
-  nTotal: number | null;
-  nTraining: number | null;
-  nMx1: number | null;
-  nMx2: number | null;
-};
+export { variantSamples };
+export type { DatasetRow, SuperpackSummary, VariantInfo };
 
 export type OverviewFilters = {
   superpackId: number | null;
@@ -150,12 +117,6 @@ export function listDatasetRows(db: DatabaseSync, superpackId: number | null): D
     variants: JSON.parse(r.variants) as VariantInfo[],
     tags: (JSON.parse(r.tags) as (string | null)[]).filter((t): t is string => Boolean(t)),
   }));
-}
-
-export function variantSamples(d: DatasetRow, kinds?: VariantKind[]): number {
-  return d.variants
-    .filter((v) => !kinds || kinds.length === 0 || (kinds as string[]).includes(v.kind))
-    .reduce((n, v) => n + (v.nSamples ?? 0), 0);
 }
 
 function applyFilters(rows: DatasetRow[], f: OverviewFilters): DatasetRow[] {
