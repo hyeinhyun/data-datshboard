@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { IndexButton } from "@/components/datasets/index-button";
 import { VariantCard } from "@/components/datasets/variant-card";
 import { TagEditor } from "@/components/tags/tag-editor";
 import { Badge } from "@/components/ui/badge";
@@ -72,11 +73,22 @@ export default async function DatasetDetailPage({ params }: Props) {
           ) : null}
         </div>
         {d.note ? <p className="text-sm">{d.note}</p> : null}
+        {d.variants.some((v) => v.jsonPath) ? (
+          <div>
+            <IndexButton scope={{ datasetId: d.id }} label="모든 variant 색인" />
+          </div>
+        ) : null}
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">
         {d.variants.map((v) => (
-          <VariantCard key={v.id} variant={v} />
+          <VariantCard
+            key={v.id}
+            variant={v}
+            action={
+              v.jsonPath ? <IndexButton scope={{ variantId: v.id }} status={v.indexStatus} /> : null
+            }
+          />
         ))}
         {d.variants.length === 0 ? (
           <p className="text-muted-foreground text-sm md:col-span-3">variant가 없습니다.</p>

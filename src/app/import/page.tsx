@@ -1,10 +1,14 @@
 import type { Metadata } from "next";
 
 import { ExcelImport } from "@/components/import/excel-import";
+import { JobList } from "@/components/jobs/job-list";
+import { getDb } from "@/lib/db/client";
+import { listJobs } from "@/lib/jobs/queue";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export const metadata: Metadata = { title: "가져오기" };
+export const dynamic = "force-dynamic";
 
 export default async function ImportPage({
   searchParams,
@@ -13,6 +17,7 @@ export default async function ImportPage({
 }) {
   const { tab } = await searchParams;
   const initial = tab === "hf" || tab === "jobs" ? tab : "excel";
+  const jobs = listJobs(getDb(), 100);
   return (
     <div className="flex flex-1 flex-col gap-6 p-6">
       <div className="flex flex-col gap-1">
@@ -46,10 +51,12 @@ export default async function ImportPage({
             <CardHeader>
               <CardTitle>작업 현황</CardTitle>
               <CardDescription>
-                Phase 4에서 제공됩니다. 색인·변환 작업의 진행률과 로그.
+                색인·변환 작업의 진행률과 로그. 진행 중인 작업은 실시간으로 갱신됩니다.
               </CardDescription>
             </CardHeader>
-            <CardContent />
+            <CardContent>
+              <JobList jobs={jobs} />
+            </CardContent>
           </Card>
         </TabsContent>
       </Tabs>

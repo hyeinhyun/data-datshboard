@@ -1,0 +1,3 @@
+datapack	category	sub_category	language	dataset	origin_json	longer_json_path	longer_n_samples	longans_json_path	longans_n_samples	shortans_json_path	shortans_n_samples	longer_sft_weight	longans_sft_weight	shortans_sft_weight	mx_weight_1	mx_weight_2	n_samples_total	n_samples_training	n_samples_mx_weight_1	n_samples_mx_weight_2	note
+demo	Diagram, Chart, Table		en	demo_charts	demo_charts.json		0	./data/samples/demo/demo_longans.json	300	./data/samples/demo/demo_shortans.json	300	1	1	1	0.5	1	600	600	300	600	로컬 데모 데이터
+demo	Math	Arithmetic	en	demo_text	demo_text.json		0	./data/samples/demo/demo_text.json	300		0	1	1	1	1	1	300	300	300	300	텍스트 전용

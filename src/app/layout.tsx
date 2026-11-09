@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 
 import { AppHeader } from "@/components/layout/app-header";
 import { AppSidebar } from "@/components/layout/app-sidebar";
+import { RealtimeProvider } from "@/components/realtime/realtime-provider";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
@@ -34,15 +35,17 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       suppressHydrationWarning
     >
       <body className="flex min-h-full flex-col">
-        <TooltipProvider>
-          <SidebarProvider>
-            <AppSidebar />
-            <SidebarInset>
-              <AppHeader />
-              {children}
-            </SidebarInset>
-          </SidebarProvider>
-        </TooltipProvider>
+        <RealtimeProvider>
+          <TooltipProvider>
+            <SidebarProvider>
+              <AppSidebar />
+              <SidebarInset>
+                <AppHeader />
+                {children}
+              </SidebarInset>
+            </SidebarProvider>
+          </TooltipProvider>
+        </RealtimeProvider>
       </body>
     </html>
   );

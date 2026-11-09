@@ -52,3 +52,6 @@ workers/.pytest_cache/
 # playwright
 /test-results/
 /playwright-report/
+
+# generated local demo data (node scripts/make-demo-data.mjs)
+/data/samples/demo/
