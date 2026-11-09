@@ -7,6 +7,7 @@ import { RealtimeProvider } from "@/components/realtime/realtime-provider";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
+import "katex/dist/katex.min.css";
 import "./globals.css";
 
 const geistSans = Geist({
