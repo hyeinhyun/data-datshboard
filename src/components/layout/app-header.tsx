@@ -2,6 +2,7 @@
 
 import { usePathname } from "next/navigation";
 
+import { ConnectionStatus } from "@/components/realtime/connection-status";
 import { GlobalSearch } from "@/components/search/global-search";
 import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";
@@ -16,7 +17,8 @@ export function AppHeader() {
       <SidebarTrigger className="-ml-1" />
       <Separator orientation="vertical" className="mr-2 h-4" />
       <h1 className="text-sm font-medium">{current?.title ?? "SFT Data Dashboard"}</h1>
-      <div className="ml-auto">
+      <div className="ml-auto flex items-center gap-3">
+        <ConnectionStatus />
         <GlobalSearch />
       </div>
     </header>

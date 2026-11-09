@@ -5,7 +5,7 @@ import { HfWizard } from "@/components/import/hf-wizard";
 import { workerAvailable } from "@/lib/hf/python";
 import { listDatapacks } from "@/lib/queries/datapacks";
 import { JobList } from "@/components/jobs/job-list";
-import { getDb } from "@/lib/db/client";
+import { get, getDb } from "@/lib/db/client";
 import { listJobs } from "@/lib/jobs/queue";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -24,6 +24,10 @@ export default async function ImportPage({
   const jobs = listJobs(db, 100);
   const datapacks = listDatapacks(db).map((p) => p.name);
   const worker = workerAvailable();
+  const manifestChanged = get<{ value: string }>(
+    db,
+    `SELECT value FROM settings WHERE key = 'manifest_changed_at'`,
+  )?.value;
   return (
     <div className="flex flex-1 flex-col gap-6 p-6">
       <div className="flex flex-col gap-1">
@@ -39,6 +43,12 @@ export default async function ImportPage({
           <TabsTrigger value="jobs">작업</TabsTrigger>
         </TabsList>
         <TabsContent value="excel" className="mt-4">
+          {manifestChanged ? (
+            <p className="mb-4 rounded-md border border-[var(--series-4)] bg-[color-mix(in_oklch,var(--series-4),transparent_90%)] px-3 py-2 text-sm">
+              서버의 Manifest 파일(MANIFEST_PATH)이 {manifestChanged.replace("T", " ").slice(0, 19)}
+              에 변경되었습니다. 최신 내용을 반영하려면 파일을 다시 가져오세요.
+            </p>
+          ) : null}
           <ExcelImport />
         </TabsContent>
         <TabsContent value="hf" className="mt-4">
