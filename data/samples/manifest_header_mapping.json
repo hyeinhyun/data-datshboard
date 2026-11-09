@@ -1,0 +1,26 @@
+{
+  "raw_to_normalized": {
+    "Datapack": "datapack",
+    "Category": "category",
+    "Sub-category": "sub_category",
+    "언어": "language",
+    "Dataset": "dataset",
+    "orign json": "origin_json",
+    "longer:\njson path": "longer_json_path",
+    "longer:\n# sample": "longer_n_samples",
+    "longans:\njson path": "longans_json_path",
+    "longans:\n# sample": "longans_n_samples",
+    "shortans:\njson path": "shortans_json_path",
+    "shortans:\n# sample": "shortans_n_samples",
+    "longer:\nsft weight": "longer_sft_weight",
+    "longans:\nsft weight": "longans_sft_weight",
+    "shortans:\nsft weight": "shortans_sft_weight",
+    "MX weight (1)": "mx_weight_1",
+    "MX weight (2)": "mx_weight_2",
+    "# samples in total": "n_samples_total",
+    "# samples in training": "n_samples_training",
+    "# samples in MX weight": "n_samples_mx_weight_1",
+    "# samples in MX weight (2)": "n_samples_mx_weight_2",
+    "비고": "note"
+  }
+}
