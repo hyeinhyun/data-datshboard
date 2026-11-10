@@ -1,4 +1,6 @@
+import { ScanCancelled, scanRoot } from "@/lib/experiments/scan";
 import { runHfImportJob } from "@/lib/hf/import-job";
+import { publish } from "@/lib/realtime/bus";
 import { IndexCancelled, indexVariant } from "@/lib/indexer/index-variant";
 import { getVariant } from "@/lib/queries/datasets";
 import { registerHandler } from "./queue";
@@ -34,4 +36,25 @@ export function ensureHandlers(): void {
   });
 
   registerHandler("hf_import", runHfImportJob);
+
+  registerHandler("scan", async ({ job, signal, progress }, db) => {
+    const rootId = Number(job.payload.rootId);
+    try {
+      const r = await scanRoot(db, rootId, {
+        signal,
+        onProgress: (message) => progress(0.5, message),
+      });
+      publish({ type: "data-changed", scope: "experiments" });
+      publish({ type: "data-changed", scope: "datasets" });
+      progress(
+        1,
+        `학습 설정 ${r.nConfigs}개, dataset_info.json ${r.nInfos}개, 데이터 파일 ${r.nFiles}개` +
+          (r.nMissing ? ` (없는 파일 ${r.nMissing}개)` : ""),
+      );
+      return r;
+    } catch (err) {
+      if (err instanceof ScanCancelled) return { rootId, cancelled: true };
+      throw err;
+    }
+  });
 }

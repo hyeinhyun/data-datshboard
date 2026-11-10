@@ -18,6 +18,7 @@ import {
 import { getDb } from "@/lib/db/client";
 import { formatDate, formatInt, formatWeight } from "@/lib/format";
 import { getDataset } from "@/lib/queries/datasets";
+import { experimentsUsingDataset } from "@/lib/queries/experiments";
 import { listTags } from "@/lib/queries/tags";
 
 export const dynamic = "force-dynamic";
@@ -36,6 +37,7 @@ export default async function DatasetDetailPage({ params }: Props) {
   const d = getDataset(db, Number(id));
   if (!d) notFound();
   const suggestions = listTags(db).map((t) => t.name);
+  const experiments = experimentsUsingDataset(db, d.id);
 
   return (
     <div className="flex flex-1 flex-col gap-6 p-6">
@@ -59,7 +61,13 @@ export default async function DatasetDetailPage({ params }: Props) {
           {d.subCategory ? <Badge variant="outline">{d.subCategory}</Badge> : null}
           {d.language ? <Badge variant="outline">{d.language}</Badge> : null}
           <Badge variant="outline">
-            {d.source === "hf" ? "HuggingFace" : d.source === "user" ? "직접 등록" : "Excel"}
+            {d.source === "hf"
+              ? "HuggingFace"
+              : d.source === "user"
+                ? "직접 등록"
+                : d.source === "file"
+                  ? "JSON/JSONL 파일"
+                  : "Excel"}
           </Badge>
           {d.hfRepo ? (
             <a
@@ -146,6 +154,41 @@ export default async function DatasetDetailPage({ params }: Props) {
         </Card>
 
         <div className="grid gap-4">
+          {experiments.length > 0 || d.source === "file" ? (
+            <Card>
+              <CardHeader>
+                <CardTitle>사용한 실험</CardTitle>
+                <CardDescription>
+                  dataset_info.json을 통해 이 파일을 학습·평가에 쓴 설정
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {experiments.length === 0 ? (
+                  <p className="text-muted-foreground text-sm">
+                    이 파일을 쓰는 학습 설정이 없습니다.
+                  </p>
+                ) : (
+                  <ul className="flex flex-col gap-1.5 text-sm">
+                    {experiments.map((e) => (
+                      <li
+                        key={`${e.id}-${e.split}-${e.key}`}
+                        className="flex flex-wrap items-center gap-2"
+                      >
+                        <Link href={`/experiments/${e.id}`} className="font-medium hover:underline">
+                          {e.name}
+                        </Link>
+                        <Badge variant="outline">{e.key}</Badge>
+                        {e.split === "eval" ? <Badge variant="secondary">평가</Badge> : null}
+                        <span className="text-muted-foreground truncate font-mono text-xs">
+                          {e.rootPath}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </CardContent>
+            </Card>
+          ) : null}
           <Card>
             <CardHeader>
               <CardTitle>태그</CardTitle>

@@ -2,7 +2,7 @@
 
 작성일: 2026-11-09 (6차 — 구현 완료 상태 반영)
 
-> **구현 현황 (2026-11-09)**: Phase 0~8 구현 완료. 세부 변경 사항은 아래 "구현 메모" 절과 git 로그 참고.
+> **구현 현황 (2026-11-10)**: Phase 0~8 구현 완료, Phase 10(실험·JSONL 가져오기) 추가. 세부 변경 사항은 아래 "구현 메모" 절과 git 로그 참고.
 
 ## 1. 데이터 구조 (확인된 사실)
 
@@ -315,6 +315,15 @@ tests/
 - HF 외 소스(로컬 parquet/JSONL/CSV → LLaVA JSON 변환)
 - 로그인(Auth.js), 변경 이력(누가 태그·가중치를 바꿨는지)
 
+### Phase 10 — 실험 디렉터리 · JSON/JSONL 가져오기
+
+- [x] 루트 디렉터리 스캔(작업 큐 `scan`): `dataset_info.json`과 학습 YAML(`dataset`/`eval_dataset` 키) 탐색. 체크포인트·`runs`·숨김 폴더 제외, 심볼릭 링크 미추적
+- [x] dataset_info 항목 → Dataset(source=`file`, Datapack = 파일 폴더) + `default` variant. `variants.format_spec`에 LLaMA-Factory 형식(sharegpt/alpaca, columns, tags, ranking) 저장
+- [x] 색인기: JSON 배열·JSONL 자동 판별(첫 글자), 형식 변환, 깨진 JSONL 줄은 건너뛰고 개수 기록
+- [x] 스키마: experiment_roots, dataset_infos, dataset_info_entries, experiments, experiment_datasets. 키는 (info_id, key)로 읽을 때 해석 → 재스캔해도 링크 유지
+- [x] `/experiments`(폴더별 설정·데이터·샘플 수·하이퍼파라미터), `/experiments/[id]`(데이터 표, 레지스트리, 전체 YAML), Dataset 상세의 "사용한 실험"
+- [ ] (후속) 전역 검색·개요에 실험 연결, 루트 주기적 재스캔, 설정 간 데이터 차이 비교, `file_name`이 디렉터리인 항목, 설정별 `media_dir` 이미지 루트
+
 ## 6. 일정
 
 | 단계                      | 소요 | 누적 |
@@ -367,14 +376,15 @@ MVP 약 13 작업일(1인). Phase 3까지(5.5일)면 Excel 기반 Superpack 관�
 
 ## 10. 구현 메모 (계획 대비 달라진 점)
 
-| 항목          | 계획                     | 실제                                                                                                  |
-| ------------- | ------------------------ | ----------------------------------------------------------------------------------------------------- |
-| DB 드라이버   | better-sqlite3 + Drizzle | Node 24 내장 `node:sqlite` + 직접 SQL (네이티브 빌드 의존성 제거, FTS5 사용)                          |
-| Excel         | SheetJS                  | exceljs (읽기·내보내기 모두)                                                                          |
-| UI 라이브러리 | shadcn (Radix)           | shadcn v4 기본 프리셋 (Base UI). `render` prop 패턴                                                   |
-| 테이블        | TanStack Table           | TanStack Table v8 고정 (v9는 API가 달라 보류)                                                         |
-| 실시간        | Phase 7                  | Phase 4부터 SSE + `RealtimeProvider`로 도입, Phase 7은 감시자·연결 표시 추가                          |
-| HF 워커       | Python `datasets`        | 동일. `hf_inspect` / `hf_import` CLI, JSON-lines 진행률, zip 아카이브 lazy 다운로드                   |
-| 색인 저장     | conversations 전문 저장  | 동일. FTS는 첫 질문 + 답변 전문(20k자 cap)                                                            |
-| 데모          | 없음                     | `scripts/make-demo-data.mjs`로 볼륨 없이 전체 흐름 확인 가능                                          |
-| 미검증        | —                        | Docker 이미지 빌드(로컬에 Docker 없음), 실제 `/group-volume` 경로 색인, ViRL39K 전체 변환(1.8 GB zip) |
+| 항목          | 계획                     | 실제                                                                                                         |
+| ------------- | ------------------------ | ------------------------------------------------------------------------------------------------------------ |
+| DB 드라이버   | better-sqlite3 + Drizzle | Node 24 내장 `node:sqlite` + 직접 SQL (네이티브 빌드 의존성 제거, FTS5 사용)                                 |
+| Excel         | SheetJS                  | exceljs (읽기·내보내기 모두)                                                                                 |
+| UI 라이브러리 | shadcn (Radix)           | shadcn v4 기본 프리셋 (Base UI). `render` prop 패턴                                                          |
+| 테이블        | TanStack Table           | TanStack Table v8 고정 (v9는 API가 달라 보류)                                                                |
+| 실시간        | Phase 7                  | Phase 4부터 SSE + `RealtimeProvider`로 도입, Phase 7은 감시자·연결 표시 추가                                 |
+| HF 워커       | Python `datasets`        | 동일. `hf_inspect` / `hf_import` CLI, JSON-lines 진행률, zip 아카이브 lazy 다운로드                          |
+| 색인 저장     | conversations 전문 저장  | 동일. FTS는 첫 질문 + 답변 전문(20k자 cap)                                                                   |
+| 데모          | 없음                     | `scripts/make-demo-data.mjs`로 볼륨 없이 전체 흐름 확인 가능                                                 |
+| 실험 스캔     | —                        | `dataset_dir: .`은 실행 위치를 알 수 없어 YAML 폴더 기준으로 해석, 없으면 상위 폴더의 dataset_info.json 사용 |
+| 미검증        | —                        | Docker 이미지 빌드(로컬에 Docker 없음), 실제 `/group-volume` 경로 색인, ViRL39K 전체 변환(1.8 GB zip)        |

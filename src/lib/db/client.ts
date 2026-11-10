@@ -40,14 +40,22 @@ export function migrate(db: DatabaseSync): void {
   );
   for (const m of MIGRATIONS) {
     if (applied.has(m.name)) continue;
+    // PRAGMA foreign_keys is a no-op inside a transaction, so toggle it outside.
+    if (m.foreignKeysOff) db.exec("PRAGMA foreign_keys = OFF");
     db.exec("BEGIN");
     try {
       db.exec(m.sql);
+      for (const table of m.foreignKeysOff ?? []) {
+        const broken = db.prepare(`PRAGMA foreign_key_check(${table})`).all();
+        if (broken.length) throw new Error(`${m.name}: ${table} 외래 키 위반 ${broken.length}건`);
+      }
       db.prepare("INSERT INTO schema_migrations (name) VALUES (?)").run(m.name);
       db.exec("COMMIT");
     } catch (err) {
       db.exec("ROLLBACK");
       throw err;
+    } finally {
+      if (m.foreignKeysOff) db.exec("PRAGMA foreign_keys = ON");
     }
   }
 }

@@ -3,7 +3,7 @@ import type { DatabaseSync } from "node:sqlite";
 import { all, get, getDb } from "@/lib/db/client";
 import { publish } from "@/lib/realtime/bus";
 
-export type JobType = "index" | "hf_inspect" | "hf_import" | "excel_import";
+export type JobType = "index" | "hf_inspect" | "hf_import" | "excel_import" | "scan";
 export type JobStatus = "queued" | "running" | "done" | "error" | "cancelled";
 
 export type Job = {

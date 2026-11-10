@@ -2,6 +2,7 @@ import type { LucideIcon } from "lucide-react";
 import {
   Database,
   Download,
+  FlaskConical,
   Images,
   LayoutDashboard,
   Layers,
@@ -40,6 +41,12 @@ export const NAV_ITEMS: NavItem[] = [
     href: "/datasets",
     icon: Database,
     description: "Manifest 행 단위. variant별 경로·샘플 수·가중치",
+  },
+  {
+    title: "실험",
+    href: "/experiments",
+    icon: FlaskConical,
+    description: "학습 설정(YAML)별로 어떤 데이터 파일을 썼는지",
   },
   {
     title: "샘플",

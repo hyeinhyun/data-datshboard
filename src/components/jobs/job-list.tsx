@@ -23,6 +23,7 @@ const TYPE_LABEL: Record<Job["type"], string> = {
   hf_inspect: "HF 조회",
   hf_import: "HF 변환",
   excel_import: "Excel 가져오기",
+  scan: "실험 스캔",
 };
 
 function StatusBadge({ status }: { status: string }) {

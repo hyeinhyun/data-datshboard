@@ -6,6 +6,7 @@ VLM(비전-언어 모델) SFT 학습 데이터를 한눈에 보고 다루는 팀
 - Excel Manifest(탭 = Superpack)를 가져오고, Datapack을 조합해 새 Superpack을 만들고, MX weight를 편집해 Excel/JSON으로 내보냅니다.
 - LLaVA 형식 대화 JSON을 스트리밍으로 색인해 샘플(Q/A + 이미지)을 탐색합니다. 마크다운·KaTeX 렌더링, 전문 검색, 키보드 이동.
 - HuggingFace 데이터셋 링크를 LLaVA JSON + 이미지 폴더로 변환해 Dataset으로 등록합니다.
+- LLaMA-Factory 실험 디렉터리를 스캔해 `dataset_info.json`과 학습 YAML을 찾고, 실험(설정)마다 어떤 JSON/JSONL 데이터를 썼는지 정리합니다.
 - Datapack/Dataset에 자유 형식 태그, ⌘K 전역 검색, SSE 실시간 갱신, 파일 변경 감시.
 
 개발 계획과 아키텍처는 [docs/DEVELOPMENT_PLAN.md](docs/DEVELOPMENT_PLAN.md)에 있습니다.
@@ -48,6 +49,13 @@ node scripts/make-demo-data.mjs --samples 300
 5. **Superpack › 새 Superpack**: Datapack을 골라 믹스를 만들고 MX weight를 편집한 뒤 Excel(Manifest 형식) 또는 JSON으로 내보냅니다.
 6. **가져오기 › HuggingFace**: 링크 조회 → 필드 매핑(자동 추천) → 옵션 → 변환. 완료되면 Dataset(source=hf)이 등록되고 바로 색인됩니다.
 7. **태그**: Datapack/Dataset 상세에서 추가·삭제. 모든 목록의 필터와 ⌘K 검색에서 쓸 수 있습니다.
+8. **실험**: 루트 디렉터리(예: `.../Gauss4/scripts/training`)를 입력하고 **스캔**합니다.
+   - 하위의 모든 `dataset_info.json`을 읽어 항목의 `file_name`(JSON 배열 또는 JSONL)을 Dataset(source=file, Datapack = 파일이 있는 폴더)으로 등록합니다.
+     `formatting`(sharegpt/alpaca), `columns`, `tags`, `ranking`을 그대로 따라 대화로 변환해 색인합니다. 상대 경로는 dataset_info.json 폴더 기준입니다.
+   - `dataset:`/`eval_dataset:` 키가 있는 YAML을 학습 설정으로 보고, `dataset_dir`(YAML 폴더 기준) 또는 가장 가까운 상위 폴더의 dataset_info.json에서 키를 찾습니다.
+   - 실험 화면은 폴더별로 설정을 묶어 학습 데이터(키별 샘플 수·없는 파일·등록 안 된 키), 모델, template, cutoff, lr, epoch를 보여 줍니다. 설정 상세에서 전체 YAML과 레지스트리 항목을 봅니다.
+   - Dataset 상세의 **사용한 실험**에서 반대로 그 파일을 쓴 설정을 볼 수 있습니다. **데이터 모두 색인**으로 루트·실험 단위 일괄 색인.
+   - 다시 스캔하면 설정은 제자리에서 갱신되고, 경로·형식이 같은 파일의 색인은 유지됩니다. 체크포인트·`runs`·숨김 폴더는 탐색하지 않습니다.
 
 ## 환경 변수
 
@@ -90,20 +98,21 @@ docker compose up -d --build
 
 ## API 요약
 
-| 경로                                                                                     | 설명                                                      |
-| ---------------------------------------------------------------------------------------- | --------------------------------------------------------- |
-| `POST /api/import/excel`                                                                 | Manifest 미리보기/적용 (multipart: file, mode, overwrite) |
-| `GET/POST /api/superpacks`, `GET/PATCH/DELETE /api/superpacks/:id`                       | Superpack 조회·생성·구성/가중치 수정·삭제                 |
-| `POST /api/superpacks/:id/duplicate`, `GET /api/superpacks/:id/export?format=xlsx\|json` | 복제, 내보내기                                            |
-| `GET/POST/DELETE /api/taggings`                                                          | 태그 조회·추가·삭제                                       |
-| `POST /api/index`                                                                        | variant/dataset/datapack/superpack 범위 색인 작업 큐잉    |
-| `GET /api/jobs`, `POST /api/jobs/:id/cancel`                                             | 작업 목록, 취소                                           |
-| `GET /api/samples`, `GET /api/samples/:id`                                               | 샘플 목록(필터·검색·페이지·random=1), 상세                |
-| `GET /api/images/<path>?w=256`                                                           | IMAGE_ROOT 하위 이미지 원본/썸네일                        |
-| `POST /api/hf/inspect`, `POST /api/hf/import`                                            | HF 스키마 조회, 변환 작업 큐잉                            |
-| `GET /api/search?q=`                                                                     | 전역 검색                                                 |
-| `GET /api/events`                                                                        | SSE (데이터 변경, 작업 진행률)                            |
-| `GET /api/health`                                                                        | 헬스체크                                                  |
+| 경로                                                                                     | 설명                                                                   |
+| ---------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| `POST /api/import/excel`                                                                 | Manifest 미리보기/적용 (multipart: file, mode, overwrite)              |
+| `GET/POST /api/superpacks`, `GET/PATCH/DELETE /api/superpacks/:id`                       | Superpack 조회·생성·구성/가중치 수정·삭제                              |
+| `POST /api/superpacks/:id/duplicate`, `GET /api/superpacks/:id/export?format=xlsx\|json` | 복제, 내보내기                                                         |
+| `GET/POST/DELETE /api/taggings`                                                          | 태그 조회·추가·삭제                                                    |
+| `POST /api/index`                                                                        | variant/dataset/datapack/superpack/experiment/root 범위 색인 작업 큐잉 |
+| `GET/POST /api/experiments/roots`, `POST/DELETE /api/experiments/roots/:id`              | 실험 루트 목록·등록+스캔, 다시 스캔·삭제                               |
+| `GET /api/jobs`, `POST /api/jobs/:id/cancel`                                             | 작업 목록, 취소                                                        |
+| `GET /api/samples`, `GET /api/samples/:id`                                               | 샘플 목록(필터·검색·페이지·random=1), 상세                             |
+| `GET /api/images/<path>?w=256`                                                           | IMAGE_ROOT 하위 이미지 원본/썸네일                                     |
+| `POST /api/hf/inspect`, `POST /api/hf/import`                                            | HF 스키마 조회, 변환 작업 큐잉                                         |
+| `GET /api/search?q=`                                                                     | 전역 검색                                                              |
+| `GET /api/events`                                                                        | SSE (데이터 변경, 작업 진행률)                                         |
+| `GET /api/health`                                                                        | 헬스체크                                                               |
 
 ## 디렉터리
 

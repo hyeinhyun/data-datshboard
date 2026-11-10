@@ -34,3 +34,22 @@ export function formatDate(iso: string | null | undefined): string {
 export function truncate(text: string, max: number): string {
   return text.length <= max ? text : `${text.slice(0, max - 1)}…`;
 }
+
+/** 1536 → "1.5 KB". */
+export function formatBytes(n: number | null | undefined): string {
+  if (n === null || n === undefined || Number.isNaN(n)) return "–";
+  const units = ["B", "KB", "MB", "GB", "TB"];
+  let v = n;
+  let i = 0;
+  while (v >= 1024 && i < units.length - 1) {
+    v /= 1024;
+    i++;
+  }
+  return `${i === 0 ? v : v.toFixed(1)} ${units[i]}`;
+}
+
+/** Last `n` segments of a path: "/a/b/c/d" → "c/d". */
+export function pathTail(p: string | null | undefined, n = 2): string {
+  if (!p) return "–";
+  return p.replace(/\/+$/, "").split("/").filter(Boolean).slice(-n).join("/");
+}

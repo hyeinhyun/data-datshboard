@@ -12,7 +12,9 @@ type IndexButtonProps = {
     | { variantId: number }
     | { datasetId: number }
     | { datapackId: number }
-    | { superpackId: number };
+    | { superpackId: number }
+    | { experimentId: number }
+    | { rootId: number };
   status?: string;
   label?: string;
   size?: "sm" | "xs";

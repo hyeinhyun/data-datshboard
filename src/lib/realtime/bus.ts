@@ -2,7 +2,10 @@ import { EventEmitter } from "node:events";
 
 /** Events pushed to browsers over SSE (see /api/events). */
 export type RealtimeEvent =
-  | { type: "data-changed"; scope: "manifest" | "superpack" | "tags" | "samples" | "datasets" }
+  | {
+      type: "data-changed";
+      scope: "manifest" | "superpack" | "tags" | "samples" | "datasets" | "experiments";
+    }
   | {
       type: "job-progress";
       jobId: number;

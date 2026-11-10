@@ -32,3 +32,10 @@ export function remapPath(p: string): string {
   if (!PATH_PREFIX_FROM || PATH_PREFIX_FROM === PATH_PREFIX_TO) return p;
   return p.startsWith(PATH_PREFIX_FROM) ? PATH_PREFIX_TO + p.slice(PATH_PREFIX_FROM.length) : p;
 }
+
+/** Inverse of `remapPath`: turns a local path back into the volume path stored in the DB. */
+export function unmapPath(p: string): string {
+  const { PATH_PREFIX_FROM, PATH_PREFIX_TO } = env;
+  if (!PATH_PREFIX_FROM || !PATH_PREFIX_TO || PATH_PREFIX_FROM === PATH_PREFIX_TO) return p;
+  return p.startsWith(PATH_PREFIX_TO) ? PATH_PREFIX_FROM + p.slice(PATH_PREFIX_TO.length) : p;
+}

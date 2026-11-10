@@ -4,6 +4,7 @@ import { z } from "zod";
 import { all, getDb } from "@/lib/db/client";
 import { ensureHandlers } from "@/lib/jobs/handlers";
 import { activeJobFor, enqueue } from "@/lib/jobs/queue";
+import { variantIdsForExperiments } from "@/lib/queries/experiments";
 
 export const runtime = "nodejs";
 
@@ -13,16 +14,23 @@ const bodySchema = z
     datasetId: z.number().int().positive().optional(),
     superpackId: z.number().int().positive().optional(),
     datapackId: z.number().int().positive().optional(),
+    experimentId: z.number().int().positive().optional(),
+    rootId: z.number().int().positive().optional(),
   })
-  .refine((b) => b.variantId || b.datasetId || b.superpackId || b.datapackId, {
-    message: "variantId, datasetId, datapackId, superpackId 중 하나가 필요합니다.",
-  });
+  .refine(
+    (b) =>
+      b.variantId || b.datasetId || b.superpackId || b.datapackId || b.experimentId || b.rootId,
+    {
+      message:
+        "variantId, datasetId, datapackId, superpackId, experimentId, rootId 중 하나가 필요합니다.",
+    },
+  );
 
 /** Queues index jobs for every variant (with a JSON path) in the requested scope. */
 export async function POST(request: Request) {
   const parsed = bodySchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: parsed.error.message }, { status: 400 });
-  const { variantId, datasetId, superpackId, datapackId } = parsed.data;
+  const { variantId, datasetId, superpackId, datapackId, experimentId, rootId } = parsed.data;
   const db = getDb();
   ensureHandlers();
 
@@ -47,6 +55,14 @@ export async function POST(request: Request) {
        WHERE w.superpack_id = ? AND v.json_path IS NOT NULL`,
       superpackId,
     ).map((r) => r.id);
+  else if (experimentId) variantIds = variantIdsForExperiments(db, [experimentId]);
+  else if (rootId)
+    variantIds = variantIdsForExperiments(
+      db,
+      all<{ id: number }>(db, `SELECT id FROM experiments WHERE root_id = ?`, rootId).map(
+        (r) => r.id,
+      ),
+    );
 
   const jobs = [];
   let skipped = 0;
