@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Image as ImageIcon, LayoutGrid, List, Search, Shuffle, X } from "lucide-react";
+import { Image as ImageIcon, LayoutGrid, List, Search, Shuffle, Table2, X } from "lucide-react";
 import { useState, useTransition } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -17,11 +17,12 @@ import {
 } from "@/components/ui/select";
 import { formatInt } from "@/lib/format";
 import type { VariantRef } from "@/lib/queries/datasets";
+import type { SampleView } from "@/lib/sample-filters";
 
 type SampleFiltersBarProps = {
   variants: VariantRef[];
   total: number;
-  view: "grid" | "list";
+  view: SampleView;
 };
 
 const ALL = "all";
@@ -176,6 +177,15 @@ export function SampleFiltersBar({ variants, total, view }: SampleFiltersBarProp
             onClick={() => update((p) => p.set("view", "list"))}
           >
             <List />
+          </Button>
+          <Button
+            size="icon-sm"
+            variant={view === "table" ? "secondary" : "ghost"}
+            aria-label="표 보기 (이미지 · Question · GT)"
+            title="표 보기 (이미지 · Question · GT)"
+            onClick={() => update((p) => p.set("view", "table"))}
+          >
+            <Table2 />
           </Button>
         </div>
       </div>

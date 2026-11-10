@@ -34,6 +34,13 @@ export function sampleFiltersToParams(f: SampleFilters): URLSearchParams {
   return p;
 }
 
+export type SampleView = "grid" | "list" | "table";
+
+export function parseSampleView(v: string | string[] | undefined): SampleView {
+  const s = Array.isArray(v) ? v[0] : v;
+  return s === "list" || s === "table" ? s : "grid";
+}
+
 /** Builds a /samples URL for the given filters, optionally opening one sample and/or a page. */
 export function samplesHref(
   f: SampleFilters,

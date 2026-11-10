@@ -9,8 +9,19 @@ import { Button } from "@/components/ui/button";
 import { getDb } from "@/lib/db/client";
 import { formatInt } from "@/lib/format";
 import { listVariants } from "@/lib/queries/datasets";
-import { getSample, listSamples, sampleNeighbors, sampleStats } from "@/lib/queries/samples";
-import { parseSampleFilters, samplesHref, type SampleSearchParams } from "@/lib/sample-filters";
+import {
+  firstAnswers,
+  getSample,
+  listSamples,
+  sampleNeighbors,
+  sampleStats,
+} from "@/lib/queries/samples";
+import {
+  parseSampleFilters,
+  parseSampleView,
+  samplesHref,
+  type SampleSearchParams,
+} from "@/lib/sample-filters";
 
 export const metadata: Metadata = { title: "샘플" };
 export const dynamic = "force-dynamic";
@@ -25,7 +36,8 @@ export default async function SamplesPage({
   const sp = await searchParams;
   const db = getDb();
   const filters = parseSampleFilters(sp);
-  const view = sp.view === "list" ? "list" : "grid";
+  const view = parseSampleView(sp.view);
+  const viewParam = view === "grid" ? null : view;
   const page = Math.max(1, Number(sp.page ?? 1) || 1);
   const sampleId =
     typeof sp.sample === "string" && /^\d+$/.test(sp.sample) ? Number(sp.sample) : null;
@@ -33,12 +45,18 @@ export default async function SamplesPage({
   const variants = listVariants(db, true);
   const { items, total } = listSamples(db, filters, page, PAGE_SIZE);
   const stats = sampleStats(db, filters);
+  const answers =
+    view === "table"
+      ? firstAnswers(
+          db,
+          items.map((i) => i.id),
+        )
+      : undefined;
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   const sample = sampleId ? getSample(db, sampleId) : null;
   const neighbors = sample ? sampleNeighbors(db, sample.id, filters) : null;
-  const hrefFor = (id: number) =>
-    samplesHref(filters, { sample: id, page, view: view === "list" ? "list" : null });
+  const hrefFor = (id: number) => samplesHref(filters, { sample: id, page, view: viewParam });
 
   return (
     <div className="flex flex-1 flex-col gap-4 p-6">
@@ -53,7 +71,13 @@ export default async function SamplesPage({
 
       <SampleFiltersBar variants={variants} total={total} view={view} />
 
-      <SampleGrid items={items} view={view} hrefFor={hrefFor} activeId={sample?.id ?? null} />
+      <SampleGrid
+        items={items}
+        view={view}
+        answers={answers}
+        hrefFor={hrefFor}
+        activeId={sample?.id ?? null}
+      />
 
       {pages > 1 ? (
         <div className="flex items-center justify-center gap-2">
@@ -67,7 +91,7 @@ export default async function SamplesPage({
                 <Link
                   href={samplesHref(filters, {
                     page: page - 1,
-                    view: view === "list" ? "list" : null,
+                    view: viewParam,
                   })}
                 />
               ) : undefined
@@ -88,7 +112,7 @@ export default async function SamplesPage({
                 <Link
                   href={samplesHref(filters, {
                     page: page + 1,
-                    view: view === "list" ? "list" : null,
+                    view: viewParam,
                   })}
                 />
               ) : undefined
@@ -104,7 +128,7 @@ export default async function SamplesPage({
           sample={sample}
           prevHref={neighbors.prevId ? hrefFor(neighbors.prevId) : null}
           nextHref={neighbors.nextId ? hrefFor(neighbors.nextId) : null}
-          closeHref={samplesHref(filters, { page, view: view === "list" ? "list" : null })}
+          closeHref={samplesHref(filters, { page, view: viewParam })}
           position={neighbors.position}
           total={total}
           siblingLinks={sample.siblings.map((s) => ({

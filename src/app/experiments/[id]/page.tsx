@@ -168,7 +168,7 @@ export default async function ExperimentDetailPage({ params }: Props) {
                             <Button
                               size="xs"
                               variant="ghost"
-                              render={<Link href={`/samples?variant=${d.variantId}`} />}
+                              render={<Link href={`/samples?variant=${d.variantId}&view=table`} />}
                             >
                               샘플 보기
                             </Button>

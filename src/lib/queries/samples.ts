@@ -100,6 +100,26 @@ export function listSamples(
   return { items, total, page, pageSize };
 }
 
+/**
+ * Full text of each sample's first assistant turn (the GT answer), for the table view.
+ * `first_answer_preview` is capped at 200 characters, so this reads the stored conversation.
+ */
+export function firstAnswers(db: DatabaseSync, ids: number[]): Record<number, string> {
+  if (ids.length === 0) return {};
+  const rows = all<{ id: number; answer: string | null }>(
+    db,
+    `SELECT s.id,
+       (SELECT json_extract(t.value, '$.value') FROM json_each(s.conversations) t
+        WHERE lower(json_extract(t.value, '$.from')) IN ('gpt', 'assistant', 'model')
+        ORDER BY t.key LIMIT 1) AS answer
+     FROM samples s WHERE s.id IN (${ids.map(() => "?").join(",")})`,
+    ...ids,
+  );
+  const out: Record<number, string> = {};
+  for (const r of rows) if (r.answer !== null) out[r.id] = r.answer;
+  return out;
+}
+
 export function getSample(db: DatabaseSync, id: number): SampleDetail | null {
   const r = get<
     RawItem & {
