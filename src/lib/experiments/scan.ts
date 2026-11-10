@@ -119,17 +119,20 @@ export function fileDatasetName(volumePath: string, spec: string, ambiguous: boo
 export function registerFileDataset(
   db: DatabaseSync,
   volumePath: string,
-  spec: string,
+  /** JSON of the FormatSpec, or null for a file that is already LLaVA format. */
+  spec: string | null,
   ambiguous = false,
+  /** Datapack to file it under; defaults to the file's directory. */
+  datapackName?: string | null,
 ): number {
-  const datapackId = createDatapack(db, path.dirname(volumePath));
+  const datapackId = createDatapack(db, datapackName?.trim() || path.dirname(volumePath));
   const datasetId = get<{ id: number }>(
     db,
     `INSERT INTO datasets (datapack_id, name, source, note) VALUES (?, ?, 'file', ?)
      ON CONFLICT(datapack_id, name) DO UPDATE SET updated_at = datetime('now')
      RETURNING id`,
     datapackId,
-    fileDatasetName(volumePath, spec, ambiguous),
+    fileDatasetName(volumePath, spec ?? "", ambiguous),
     volumePath,
   )!.id;
   const existing = get<{ id: number; json_path: string | null; format_spec: string | null }>(

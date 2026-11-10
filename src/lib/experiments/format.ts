@@ -112,6 +112,19 @@ function asImages(v: unknown): string[] | undefined {
 function text(v: unknown): string {
   if (typeof v === "string") return v;
   if (v === null || v === undefined) return "";
+  // OpenAI-style content parts: [{type: "text", text}, {type: "image_url", ...}]
+  if (Array.isArray(v) && v.every((p) => p && typeof p === "object" && "type" in p)) {
+    return v
+      .map((p: { type?: unknown; text?: unknown }) =>
+        p.type === "text" && typeof p.text === "string"
+          ? p.text
+          : p.type === "image" || p.type === "image_url"
+            ? "<image>"
+            : "",
+      )
+      .filter(Boolean)
+      .join("\n");
+  }
   return typeof v === "object" ? JSON.stringify(v) : String(v);
 }
 

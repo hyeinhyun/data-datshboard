@@ -48,8 +48,9 @@ node scripts/make-demo-data.mjs --samples 300
 4. **샘플**: variant를 고르고 썸네일/리스트에서 샘플을 클릭하면 이미지와 대화(system/human/gpt)가 열립니다. ← → 로 이동, 무작위, 전문 검색, 같은 id의 다른 variant로 점프.
 5. **Superpack › 새 Superpack**: Datapack을 골라 믹스를 만들고 MX weight를 편집한 뒤 Excel(Manifest 형식) 또는 JSON으로 내보냅니다.
 6. **가져오기 › HuggingFace**: 링크 조회 → 필드 매핑(자동 추천) → 옵션 → 변환. 완료되면 Dataset(source=hf)이 등록되고 바로 색인됩니다.
-7. **태그**: Datapack/Dataset 상세에서 추가·삭제. 모든 목록의 필터와 ⌘K 검색에서 쓸 수 있습니다.
-8. **실험**: 루트 디렉터리(예: `.../Gauss4/scripts/training`)를 입력하고 **스캔**합니다.
+7. **가져오기 › JSON 경로**: JSON/JSONL 파일 경로를 쉼표나 줄바꿈으로 구분해 넣고 **찾기**를 누릅니다(폴더를 넣으면 그 아래 3단계까지의 .json/.jsonl). 첫 레코드로 형식을 자동 판별합니다 — LLaVA(`conversations`·from/value), ShareGPT, OpenAI 메시지(`messages`·role/content, content 파트 포함), Alpaca(`instruction/output`, `question/answer`, `prompt/response` 등), 이미지 열은 `image`/`images`. 미리보기에서 첫 Q/GT를 확인하고 골라 **등록**하면 Dataset(source=file)으로 만들고 바로 색인합니다. Datapack을 비우면 파일이 있는 폴더가 Datapack이 되고, 이미 등록된 파일(실험 스캔 등)은 기존 형식·색인을 그대로 씁니다.
+8. **태그**: Datapack/Dataset 상세에서 추가·삭제. 모든 목록의 필터와 ⌘K 검색에서 쓸 수 있습니다.
+9. **실험**: 루트 디렉터리(예: `.../Gauss4/scripts/training`)를 입력하고 **스캔**합니다.
    - 하위의 모든 `dataset_info.json`을 읽어 항목의 `file_name`(JSON 배열 또는 JSONL)을 Dataset(source=file, Datapack = 파일이 있는 폴더)으로 등록합니다.
      `formatting`(sharegpt/alpaca), `columns`, `tags`, `ranking`을 그대로 따라 대화로 변환해 색인합니다. 상대 경로는 dataset_info.json 폴더 기준입니다.
    - `dataset:`/`eval_dataset:` 키가 있는 YAML을 학습 설정으로 보고, `dataset_dir`(YAML 폴더 기준) 또는 가장 가까운 상위 폴더의 dataset_info.json에서 키를 찾습니다.
@@ -101,6 +102,7 @@ docker compose up -d --build
 | 경로                                                                                     | 설명                                                                   |
 | ---------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
 | `POST /api/import/excel`                                                                 | Manifest 미리보기/적용 (multipart: file, mode, overwrite)              |
+| `POST /api/import/files`                                                                 | JSON/JSONL 경로 형식 판별(preview) · 등록+색인(apply)                  |
 | `GET/POST /api/superpacks`, `GET/PATCH/DELETE /api/superpacks/:id`                       | Superpack 조회·생성·구성/가중치 수정·삭제                              |
 | `POST /api/superpacks/:id/duplicate`, `GET /api/superpacks/:id/export?format=xlsx\|json` | 복제, 내보내기                                                         |
 | `GET/POST/DELETE /api/taggings`                                                          | 태그 조회·추가·삭제                                                    |

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
 import { ExcelImport } from "@/components/import/excel-import";
+import { FileImport } from "@/components/import/file-import";
 import { HfWizard } from "@/components/import/hf-wizard";
 import { workerAvailable } from "@/lib/hf/python";
 import { listDatapacks } from "@/lib/queries/datapacks";
@@ -19,7 +20,7 @@ export default async function ImportPage({
   searchParams: Promise<{ tab?: string }>;
 }) {
   const { tab } = await searchParams;
-  const initial = tab === "hf" || tab === "jobs" ? tab : "excel";
+  const initial = tab === "hf" || tab === "jobs" || tab === "files" ? tab : "excel";
   const db = getDb();
   const jobs = listJobs(db, 100);
   const datapacks = listDatapacks(db).map((p) => p.name);
@@ -33,12 +34,14 @@ export default async function ImportPage({
       <div className="flex flex-col gap-1">
         <h2 className="text-2xl font-semibold tracking-tight">가져오기</h2>
         <p className="text-muted-foreground text-sm">
-          Excel Manifest와 HuggingFace 데이터셋을 가져오고, 색인·변환 작업 현황을 봅니다.
+          Excel Manifest, JSON/JSONL 파일 경로, HuggingFace 데이터셋을 가져오고, 색인·변환 작업
+          현황을 봅니다.
         </p>
       </div>
       <Tabs defaultValue={initial}>
         <TabsList>
           <TabsTrigger value="excel">Excel Manifest</TabsTrigger>
+          <TabsTrigger value="files">JSON 경로</TabsTrigger>
           <TabsTrigger value="hf">HuggingFace</TabsTrigger>
           <TabsTrigger value="jobs">작업</TabsTrigger>
         </TabsList>
@@ -50,6 +53,9 @@ export default async function ImportPage({
             </p>
           ) : null}
           <ExcelImport />
+        </TabsContent>
+        <TabsContent value="files" className="mt-4">
+          <FileImport datapacks={datapacks} />
         </TabsContent>
         <TabsContent value="hf" className="mt-4">
           <HfWizard datapacks={datapacks} workerReady={worker.ok} workerReason={worker.reason} />
