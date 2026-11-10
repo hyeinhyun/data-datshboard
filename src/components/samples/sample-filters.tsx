@@ -117,7 +117,7 @@ export function SampleFiltersBar({ variants, total, view }: SampleFiltersBarProp
         <Input
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          placeholder="질문/답변 전문 검색…"
+          placeholder="질문 검색…"
           className="h-8 w-64 pl-7"
           aria-label="샘플 검색"
         />

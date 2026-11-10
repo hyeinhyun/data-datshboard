@@ -161,6 +161,12 @@ export function SampleDetailSheet({
         <div className="flex-1 overflow-y-auto px-4 py-4">
           <div className="grid gap-4">
             <ImageViewer paths={sample.imagePaths} />
+            {sample.loadError || sample.stale ? (
+              <p className="border-destructive/40 text-destructive rounded-md border px-3 py-2 text-sm">
+                {sample.loadError ??
+                  "색인 후 원본 파일이 바뀌었습니다. 다른 샘플이 보일 수 있으니 다시 색인하세요."}
+              </p>
+            ) : null}
             <ConversationView turns={sample.conversations} raw={raw} />
             {sample.meta && Object.keys(sample.meta).length ? (
               <>

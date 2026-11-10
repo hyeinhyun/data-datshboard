@@ -14,8 +14,8 @@ import { TableImage } from "./table-image";
 type SampleGridProps = {
   items: SampleListItem[];
   view: SampleView;
-  /** Full first answer (GT) per sample id; used by the table view. */
-  answers?: Record<number, string>;
+  /** Full first question and GT per sample id, read live from the file (table view). */
+  qa?: Record<number, { question: string | null; answer: string | null; error?: string }>;
   /** Builds the href that opens a sample while keeping the current filters. */
   hrefFor: (id: number) => string;
   activeId?: number | null;
@@ -45,10 +45,10 @@ function Thumb({ item, className }: { item: SampleListItem; className: string })
 /** One row per sample: images, the full first question and the full GT answer side by side. */
 function SampleTable({
   items,
-  answers,
+  qa,
   hrefFor,
   activeId,
-}: Pick<SampleGridProps, "items" | "answers" | "hrefFor" | "activeId">) {
+}: Pick<SampleGridProps, "items" | "qa" | "hrefFor" | "activeId">) {
   return (
     <div className="overflow-x-auto rounded-md border">
       <table className="w-full table-fixed text-sm">
@@ -68,7 +68,11 @@ function SampleTable({
         </thead>
         <tbody className="divide-y">
           {items.map((item) => {
-            const gt = answers?.[item.id] ?? item.firstAnswerPreview;
+            const live = qa?.[item.id];
+            // Live text from the file; the short indexed previews only when it could not be read.
+            const fromFile = live && !live.error;
+            const question = fromFile ? live.question : item.firstQuestion;
+            const gt = fromFile ? live.answer : item.firstAnswerPreview;
             return (
               <tr
                 key={item.id}
@@ -107,10 +111,11 @@ function SampleTable({
                 </td>
                 <td className="px-3 py-2">
                   <div className="max-h-64 overflow-y-auto break-words whitespace-pre-wrap">
-                    {item.firstQuestion ?? (
-                      <span className="text-muted-foreground">(질문 없음)</span>
-                    )}
+                    {question ?? <span className="text-muted-foreground">(질문 없음)</span>}
                   </div>
+                  {live?.error ? (
+                    <p className="text-destructive mt-1 text-xs">{live.error}</p>
+                  ) : null}
                   {item.nTurns > 1 ? (
                     <Link
                       href={hrefFor(item.id)}
@@ -139,7 +144,7 @@ function SampleTable({
   );
 }
 
-export function SampleGrid({ items, view, answers, hrefFor, activeId }: SampleGridProps) {
+export function SampleGrid({ items, view, qa, hrefFor, activeId }: SampleGridProps) {
   if (items.length === 0) {
     return (
       <p className="text-muted-foreground py-16 text-center text-sm">
@@ -148,7 +153,7 @@ export function SampleGrid({ items, view, answers, hrefFor, activeId }: SampleGr
     );
   }
   if (view === "table") {
-    return <SampleTable items={items} answers={answers} hrefFor={hrefFor} activeId={activeId} />;
+    return <SampleTable items={items} qa={qa} hrefFor={hrefFor} activeId={activeId} />;
   }
   if (view === "list") {
     return (

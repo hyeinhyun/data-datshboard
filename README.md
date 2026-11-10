@@ -4,7 +4,7 @@ VLM(비전-언어 모델) SFT 학습 데이터를 한눈에 보고 다루는 팀
 
 - **Superpack → Datapack → Dataset → Variant → Sample** 계층으로 데이터를 정리합니다.
 - Excel Manifest(탭 = Superpack)를 가져오고, Datapack을 조합해 새 Superpack을 만들고, MX weight를 편집해 Excel/JSON으로 내보냅니다.
-- LLaVA 형식 대화 JSON을 스트리밍으로 색인해 샘플(Q/A + 이미지)을 탐색합니다. 마크다운·KaTeX 렌더링, 전문 검색, 키보드 이동.
+- JSON/JSONL을 한 번 훑어 샘플 위치(byte offset)만 색인하고, 샘플(Q/A + 이미지)은 볼 때 원본 파일에서 바로 읽습니다. 마크다운·KaTeX 렌더링, 질문 검색, 키보드 이동.
 - HuggingFace 데이터셋 링크를 LLaVA JSON + 이미지 폴더로 변환해 Dataset으로 등록합니다.
 - LLaMA-Factory 실험 디렉터리를 스캔해 `dataset_info.json`과 학습 YAML을 찾고, 실험(설정)마다 어떤 JSON/JSONL 데이터를 썼는지 정리합니다.
 - Datapack/Dataset에 자유 형식 태그, ⌘K 전역 검색, SSE 실시간 갱신, 파일 변경 감시.
@@ -45,7 +45,7 @@ node scripts/make-demo-data.mjs --samples 300
    같은 Dataset의 variant 경로가 기존과 다르면 충돌로 표시되고, "덮어쓰기"를 켠 경우에만 바뀝니다.
 2. **개요**: Superpack을 고르면 KPI(Datapack/Dataset/총 샘플/학습 샘플/MX(1)/MX(2))와 Category별 variant 누적 막대, Datapack·언어 비율이 보입니다. 필터는 URL에 저장됩니다.
 3. **Dataset 상세 › 색인**: variant의 JSON을 SQLite에 스트리밍 색인합니다. 진행률은 가져오기 › 작업 탭과 헤더에 실시간으로 표시됩니다.
-4. **샘플**: variant를 고르고 썸네일/리스트에서 샘플을 클릭하면 이미지와 대화(system/human/gpt)가 열립니다. ← → 로 이동, 무작위, 전문 검색, 같은 id의 다른 variant로 점프.
+4. **샘플**: variant를 고르고 썸네일/리스트에서 샘플을 클릭하면 이미지와 대화(system/human/gpt)가 열립니다. ← → 로 이동, 무작위, 질문 검색(첫 질문 앞 300자), 같은 id의 다른 variant로 점프. 대화 원문은 DB에 복사하지 않고 열 때 원본 파일의 해당 위치에서 읽으므로, 색인 후 파일이 바뀌면 경고가 뜨고 다시 색인해야 합니다.
 5. **Superpack › 새 Superpack**: Datapack을 골라 믹스를 만들고 MX weight를 편집한 뒤 Excel(Manifest 형식) 또는 JSON으로 내보냅니다.
 6. **가져오기 › HuggingFace**: 링크 조회 → 필드 매핑(자동 추천) → 옵션 → 변환. 완료되면 Dataset(source=hf)이 등록되고 바로 색인됩니다.
 7. **가져오기 › JSON 경로**: JSON/JSONL 파일 경로를 쉼표나 줄바꿈으로 구분해 넣고 **찾기**를 누릅니다(폴더를 넣으면 그 아래 3단계까지의 .json/.jsonl). 첫 레코드로 형식을 자동 판별합니다 — LLaVA(`conversations`·from/value), ShareGPT, OpenAI 메시지(`messages`·role/content, content 파트 포함), Alpaca(`instruction/output`, `question/answer`, `prompt/response` 등), 이미지 열은 `image`/`images`. 미리보기에서 첫 Q/GT를 확인하고 골라 **등록**하면 Dataset(source=file)으로 만들고 바로 색인합니다. Datapack을 비우면 파일이 있는 폴더가 Datapack이 되고, 이미 등록된 파일(실험 스캔 등)은 기존 형식·색인을 그대로 씁니다.

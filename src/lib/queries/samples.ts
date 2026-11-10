@@ -1,7 +1,8 @@
 import type { DatabaseSync } from "node:sqlite";
 
 import { all, get, type SqlParam } from "@/lib/db/client";
-import type { Turn } from "@/lib/indexer/derive";
+import { normalizeRole, type Turn } from "@/lib/indexer/derive";
+import { readSamples } from "@/lib/indexer/read-samples";
 import type { VariantKind } from "@/lib/manifest/types";
 import { toFtsQuery } from "./search";
 
@@ -34,7 +35,12 @@ export type SampleDetail = SampleListItem & {
   datapack: string;
   hasSystem: boolean;
   meta: Record<string, unknown> | null;
+  /** Read live from the data file when the sample is opened. */
   conversations: Turn[];
+  /** Why the conversation could not be read from the file, if it could not. */
+  loadError: string | null;
+  /** The file changed after indexing; positions may be off until it is re-indexed. */
+  stale: boolean;
   siblings: { variantId: number; kind: string; sampleRowId: number }[];
 };
 
@@ -101,22 +107,23 @@ export function listSamples(
 }
 
 /**
- * Full text of each sample's first assistant turn (the GT answer), for the table view.
- * `first_answer_preview` is capped at 200 characters, so this reads the stored conversation.
+ * Full first question and first answer (GT) of each sample, read live from the data
+ * files for the table view. Samples that cannot be read get an `error` instead.
  */
-export function firstAnswers(db: DatabaseSync, ids: number[]): Record<number, string> {
-  if (ids.length === 0) return {};
-  const rows = all<{ id: number; answer: string | null }>(
-    db,
-    `SELECT s.id,
-       (SELECT json_extract(t.value, '$.value') FROM json_each(s.conversations) t
-        WHERE lower(json_extract(t.value, '$.from')) IN ('gpt', 'assistant', 'model')
-        ORDER BY t.key LIMIT 1) AS answer
-     FROM samples s WHERE s.id IN (${ids.map(() => "?").join(",")})`,
-    ...ids,
-  );
-  const out: Record<number, string> = {};
-  for (const r of rows) if (r.answer !== null) out[r.id] = r.answer;
+export function liveQuestionAnswers(
+  db: DatabaseSync,
+  ids: number[],
+): Record<number, { question: string | null; answer: string | null; error?: string }> {
+  const out: Record<number, { question: string | null; answer: string | null; error?: string }> =
+    {};
+  for (const [id, live] of readSamples(db, ids)) {
+    if (!live.ok) {
+      out[id] = { question: null, answer: null, error: live.error };
+      continue;
+    }
+    const answer = live.sample.conversations.find((t) => normalizeRole(t.from) === "gpt");
+    out[id] = { question: live.sample.firstQuestion, answer: answer?.value ?? null };
+  }
   return out;
 }
 
@@ -126,15 +133,13 @@ export function getSample(db: DatabaseSync, id: number): SampleDetail | null {
       datasetId: number;
       datapack: string;
       hasSystem: number;
-      meta: string | null;
-      conversations: string;
     }
   >(
     db,
     `SELECT s.id, s.sample_id AS sampleId, s.variant_id AS variantId, v.kind, d.name AS dataset,
             d.id AS datasetId, p.name AS datapack, s.image_paths AS imagePaths, s.n_images AS nImages,
             s.n_turns AS nTurns, s.first_question AS firstQuestion, s.first_answer_preview AS firstAnswerPreview,
-            s.q_chars AS qChars, s.a_chars AS aChars, s.has_system AS hasSystem, s.meta, s.conversations
+            s.q_chars AS qChars, s.a_chars AS aChars, s.has_system AS hasSystem
      FROM samples s JOIN variants v ON v.id = s.variant_id JOIN datasets d ON d.id = v.dataset_id
      JOIN datapacks p ON p.id = d.datapack_id WHERE s.id = ?`,
     id,
@@ -152,13 +157,17 @@ export function getSample(db: DatabaseSync, id: number): SampleDetail | null {
         id,
       )
     : [];
+  // The conversation is not stored: read it from the data file now.
+  const live = readSamples(db, [id]).get(id);
   return {
     ...hydrate(r),
     datasetId: r.datasetId,
     datapack: r.datapack,
     hasSystem: Boolean(r.hasSystem),
-    meta: r.meta ? (JSON.parse(r.meta) as Record<string, unknown>) : null,
-    conversations: JSON.parse(r.conversations) as Turn[],
+    meta: live?.ok ? live.sample.meta : null,
+    conversations: live?.ok ? live.sample.conversations : [],
+    loadError: live && !live.ok ? live.error : live ? null : "샘플을 읽지 못했습니다.",
+    stale: live?.stale ?? false,
     siblings,
   };
 }

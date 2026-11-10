@@ -264,4 +264,36 @@ export const MIGRATIONS: {
       CREATE INDEX experiment_datasets_key_idx ON experiment_datasets(key);
     `,
   },
+  {
+    // Samples no longer copy the conversation: they record where the record sits in the
+    // data file (byte offset + length) and the conversation is read from the file when a
+    // sample is opened. Search covers the first question only. Existing indexes are
+    // dropped (they are derived data) and their variants need re-indexing.
+    name: "0003_sample_offsets",
+    sql: `
+      DROP TABLE samples_fts;
+      DROP TABLE samples;
+      CREATE TABLE samples (
+        id                   INTEGER PRIMARY KEY,
+        variant_id           INTEGER NOT NULL REFERENCES variants(id) ON DELETE CASCADE,
+        sample_id            TEXT,
+        image_paths          TEXT NOT NULL DEFAULT '[]',
+        n_images             INTEGER NOT NULL DEFAULT 0,
+        n_turns              INTEGER NOT NULL DEFAULT 0,
+        has_system           INTEGER NOT NULL DEFAULT 0,
+        first_question       TEXT,
+        first_answer_preview TEXT,
+        q_chars              INTEGER NOT NULL DEFAULT 0,
+        a_chars              INTEGER NOT NULL DEFAULT 0,
+        byte_offset          INTEGER NOT NULL,
+        byte_length          INTEGER NOT NULL
+      );
+      CREATE INDEX samples_variant_idx ON samples(variant_id, id);
+      CREATE INDEX samples_variant_sample_idx ON samples(variant_id, sample_id);
+      CREATE VIRTUAL TABLE samples_fts USING fts5(first_question);
+      UPDATE variants SET index_status = 'none', n_samples_indexed = 0, indexed_at = NULL,
+        file_mtime = NULL, index_error = NULL
+      WHERE index_status IN ('done', 'error', 'running');
+    `,
+  },
 ];

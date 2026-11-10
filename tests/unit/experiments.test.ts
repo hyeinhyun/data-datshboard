@@ -14,7 +14,7 @@ import { normalizeRootPath, scanRoot, upsertRoot } from "@/lib/experiments/scan"
 import { deriveSample } from "@/lib/indexer/derive";
 import { indexVariant } from "@/lib/indexer/index-variant";
 import { experimentsUsingDataset, getExperiment, listExperiments } from "@/lib/queries/experiments";
-import { firstAnswers } from "@/lib/queries/samples";
+import { liveQuestionAnswers } from "@/lib/queries/samples";
 
 const SHAREGPT_ENTRY = {
   formatting: "sharegpt",
@@ -274,7 +274,7 @@ describe("scanRoot", () => {
     expect(v.index_status).toBe("done");
     expect(v.index_error).toContain("1개");
 
-    // The table view's GT column reads the full first answer, not the 200-char preview.
+    // The table view's GT column is read live from the file at the stored byte offsets.
     const ids = (
       db
         .prepare(`SELECT id FROM samples WHERE variant_id = ? ORDER BY id`)
@@ -282,7 +282,11 @@ describe("scanRoot", () => {
         id: number;
       }[]
     ).map((r) => r.id);
-    expect(Object.values(firstAnswers(db, ids))).toEqual(["answer 0", "answer 1", "answer 2"]);
+    expect(Object.values(liveQuestionAnswers(db, ids)).map((x) => x.answer)).toEqual([
+      "answer 0",
+      "answer 1",
+      "answer 2",
+    ]);
 
     const ultra = base.datasets[1];
     expect((await indexVariant(db, ultra.variantId!)).nSamples).toBe(2);

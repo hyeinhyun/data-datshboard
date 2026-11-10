@@ -10,7 +10,7 @@ import { getDb } from "@/lib/db/client";
 import { formatInt } from "@/lib/format";
 import { listVariants } from "@/lib/queries/datasets";
 import {
-  firstAnswers,
+  liveQuestionAnswers,
   getSample,
   listSamples,
   sampleNeighbors,
@@ -45,9 +45,9 @@ export default async function SamplesPage({
   const variants = listVariants(db, true);
   const { items, total } = listSamples(db, filters, page, PAGE_SIZE);
   const stats = sampleStats(db, filters);
-  const answers =
+  const qa =
     view === "table"
-      ? firstAnswers(
+      ? liveQuestionAnswers(
           db,
           items.map((i) => i.id),
         )
@@ -74,7 +74,7 @@ export default async function SamplesPage({
       <SampleGrid
         items={items}
         view={view}
-        answers={answers}
+        qa={qa}
         hrefFor={hrefFor}
         activeId={sample?.id ?? null}
       />

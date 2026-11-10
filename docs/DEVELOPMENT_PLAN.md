@@ -131,7 +131,7 @@ JSON 경로는 `/group-volume/lit/data/sr-llava/finetune/json/...` 형태의 서
 - `tags`: id, name(자유 형식, 예: `filtered`, `v2-candidate`), color
 - `taggings`: tag_id, target_type(`datapack`|`dataset`), target_id, created_by(nullable), created_at
 - `samples`: id, variant_id, sample_id, image_paths(JSON 배열), n_images, n_turns, has_system, first_question, first_answer_preview, q_chars, a_chars, meta(JSON: HF 보존 컬럼 등), conversations(JSON)
-- `samples_fts`: FTS5(first_question, answer_text)
+- `samples_fts`: FTS5(first_question) — 0003부터 첫 질문 앞 300자만. 샘플 원문은 저장하지 않고 `byte_offset`/`byte_length`로 원본에서 읽음
 - `jobs`: id, type(`index`|`hf_import`|`excel_import`), status, progress, message, payload(JSON), result(JSON), created_at, finished_at
 
 > HF로 만든 Dataset은 variant 하나(`default`)로 등록하고, 이후 사용자가 Datapack에 넣고 Superpack에 포함시킨다.
@@ -384,7 +384,7 @@ MVP 약 13 작업일(1인). Phase 3까지(5.5일)면 Excel 기반 Superpack 관�
 | 테이블        | TanStack Table           | TanStack Table v8 고정 (v9는 API가 달라 보류)                                                                |
 | 실시간        | Phase 7                  | Phase 4부터 SSE + `RealtimeProvider`로 도입, Phase 7은 감시자·연결 표시 추가                                 |
 | HF 워커       | Python `datasets`        | 동일. `hf_inspect` / `hf_import` CLI, JSON-lines 진행률, zip 아카이브 lazy 다운로드                          |
-| 색인 저장     | conversations 전문 저장  | 동일. FTS는 첫 질문 + 답변 전문(20k자 cap)                                                                   |
+| 색인 저장     | conversations 전문 저장  | 0003부터 원문 미저장: 샘플별 byte offset·길이 + 파생 필드만. 상세·표는 원본에서 실시간 읽기, FTS는 첫 질문만 |
 | 데모          | 없음                     | `scripts/make-demo-data.mjs`로 볼륨 없이 전체 흐름 확인 가능                                                 |
 | 실험 스캔     | —                        | `dataset_dir: .`은 실행 위치를 알 수 없어 YAML 폴더 기준으로 해석, 없으면 상위 폴더의 dataset_info.json 사용 |
 | 미검증        | —                        | Docker 이미지 빌드(로컬에 Docker 없음), 실제 `/group-volume` 경로 색인, ViRL39K 전체 변환(1.8 GB zip)        |

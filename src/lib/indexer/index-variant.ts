@@ -1,14 +1,11 @@
 import fs from "node:fs";
-import readline from "node:readline";
 import type { DatabaseSync } from "node:sqlite";
-import { pipeline } from "node:stream/promises";
-
-import { streamArray } from "stream-json/streamers/stream-array.js";
 
 import { transaction } from "@/lib/db/client";
 import { remapPath } from "@/lib/env";
 import { toRawSample, type FormatSpec } from "@/lib/experiments/format";
 import { deriveSample, type RawSample } from "./derive";
+import { scanArray, scanLines, type ScannedRecord } from "./offsets";
 
 export type FileLayout = "array" | "lines";
 
@@ -32,53 +29,8 @@ export function detectLayout(file: string): FileLayout {
   }
 }
 
-/** Calls `onRow` for each element of a JSON array or each line of a JSONL file. */
-async function forEachRow(
-  source: fs.ReadStream,
-  layout: FileLayout,
-  onRow: (row: unknown) => void,
-  onBadLine: (lineNo: number) => void,
-  signal?: AbortSignal,
-): Promise<void> {
-  if (layout === "array") {
-    const items = streamArray.withParserAsStream();
-    await pipeline(source, items, async function (iterable: AsyncIterable<{ value: unknown }>) {
-      for await (const item of iterable) {
-        if (signal?.aborted) throw new IndexCancelled();
-        onRow(item.value);
-      }
-    });
-    return;
-  }
-  const rl = readline.createInterface({ input: source, crlfDelay: Infinity });
-  let lineNo = 0;
-  try {
-    for await (const line of rl) {
-      if (signal?.aborted) throw new IndexCancelled();
-      lineNo++;
-      const t = line.trim();
-      if (!t) continue;
-      let row: unknown;
-      try {
-        row = JSON.parse(t);
-      } catch {
-        onBadLine(lineNo);
-        continue;
-      }
-      if (!row || typeof row !== "object" || Array.isArray(row)) {
-        onBadLine(lineNo);
-        continue;
-      }
-      onRow(row);
-    }
-    // A destroyed input may end the iterator quietly; never report a partial file as done.
-    if (signal?.aborted) throw new IndexCancelled();
-  } finally {
-    rl.close();
-    // close() only pauses the input; release the file descriptor too.
-    if (!source.destroyed) source.destroy();
-  }
-}
+/** Longest first-question prefix kept in the index (list previews and search). */
+export const QUESTION_PREVIEW_CHARS = 300;
 
 export type IndexProgress = {
   done: number;
@@ -101,9 +53,11 @@ export class IndexCancelled extends Error {
 }
 
 /**
- * Streams the variant's JSON array into `samples` (+ FTS) in batches so memory stays
- * flat for files with hundreds of thousands of samples. Replaces any previous index
- * of the same variant.
+ * Scans the variant's file (JSON array or JSONL) once and records, per sample, where it
+ * sits in the file (byte offset + length) plus the small derived fields used for lists,
+ * filters and stats. The conversation itself is not copied: it is read back from the
+ * file when a sample is opened (see read-samples.ts). Replaces any previous index of
+ * the same variant.
  */
 export async function indexVariant(
   db: DatabaseSync,
@@ -143,14 +97,13 @@ export async function indexVariant(
 
   const insertSample = db.prepare(
     `INSERT INTO samples (variant_id, sample_id, image_paths, n_images, n_turns, has_system,
-       first_question, first_answer_preview, q_chars, a_chars, meta, conversations)
+       first_question, first_answer_preview, q_chars, a_chars, byte_offset, byte_length)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   );
-  const insertFts = db.prepare(
-    `INSERT INTO samples_fts (rowid, first_question, answer_text) VALUES (?, ?, ?)`,
-  );
+  const insertFts = db.prepare(`INSERT INTO samples_fts (rowid, first_question) VALUES (?, ?)`);
 
-  let batch: RawSample[] = [];
+  type Pending = { raw: RawSample; offset: number; length: number };
+  let batch: Pending[] = [];
   let done = 0;
   let bytesRead = 0;
   let badLines = 0;
@@ -160,8 +113,9 @@ export async function indexVariant(
     const rows = batch;
     batch = [];
     transaction(db, () => {
-      for (const raw of rows) {
+      for (const { raw, offset, length } of rows) {
         const d = deriveSample(raw);
+        const question = d.firstQuestion?.slice(0, QUESTION_PREVIEW_CHARS) ?? null;
         const result = insertSample.run(
           variantId,
           d.sampleId,
@@ -169,14 +123,14 @@ export async function indexVariant(
           d.nImages,
           d.nTurns,
           d.hasSystem ? 1 : 0,
-          d.firstQuestion,
+          question,
           d.firstAnswerPreview,
           d.qChars,
           d.aChars,
-          d.meta ? JSON.stringify(d.meta) : null,
-          JSON.stringify(d.conversations),
+          offset,
+          length,
         );
-        insertFts.run(Number(result.lastInsertRowid), d.firstQuestion ?? "", d.answerText);
+        insertFts.run(Number(result.lastInsertRowid), question ?? "");
       }
     });
     done += rows.length;
@@ -190,20 +144,34 @@ export async function indexVariant(
   const abort = () => source.destroy(new IndexCancelled());
   options.signal?.addEventListener("abort", abort, { once: true });
 
+  const onRecord = (rec: ScannedRecord) => {
+    let row: unknown;
+    try {
+      row = JSON.parse(rec.bytes.toString("utf8"));
+    } catch {
+      row = undefined;
+    }
+    if (!row || typeof row !== "object" || Array.isArray(row)) {
+      badLines++;
+      if (!firstBadLine) firstBadLine = rec.ordinal;
+      return;
+    }
+    batch.push({
+      raw: spec ? toRawSample(row, spec) : (row as RawSample),
+      offset: rec.offset,
+      length: rec.length,
+    });
+    if (batch.length >= batchSize) flush();
+  };
+
   try {
-    await forEachRow(
-      source,
-      layout,
-      (row) => {
-        batch.push(spec ? toRawSample(row, spec) : (row as RawSample));
-        if (batch.length >= batchSize) flush();
-      },
-      (lineNo) => {
-        badLines++;
-        if (!firstBadLine) firstBadLine = lineNo;
-      },
-      options.signal,
-    );
+    const records = layout === "array" ? scanArray(source) : scanLines(source);
+    for await (const rec of records) {
+      if (options.signal?.aborted) throw new IndexCancelled();
+      onRecord(rec);
+    }
+    // A destroyed input may end the iterator quietly; never report a partial file as done.
+    if (options.signal?.aborted) throw new IndexCancelled();
     flush();
   } catch (err) {
     clearVariantSamples(db, variantId);
@@ -214,11 +182,12 @@ export async function indexVariant(
     throw cancelled ? new IndexCancelled() : err;
   } finally {
     options.signal?.removeEventListener("abort", abort);
+    if (!source.destroyed) source.destroy();
   }
 
   // Bad JSONL lines are skipped rather than failing the whole file; keep a note of them.
   const warning = badLines
-    ? `JSON으로 읽을 수 없는 줄 ${badLines.toLocaleString("ko-KR")}개를 건너뜀 (첫 줄: ${firstBadLine})`
+    ? `JSON 객체로 읽을 수 없는 ${layout === "lines" ? "줄" : "항목"} ${badLines.toLocaleString("ko-KR")}개를 건너뜀 (첫 번째: ${firstBadLine})`
     : null;
   db.prepare(
     `UPDATE variants SET index_status = 'done', n_samples_indexed = ?, indexed_at = datetime('now'),
